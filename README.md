@@ -1,6 +1,8 @@
 
 # AgentGuard
 
+AI Agent Risk and Readiness Scanner
+
 A free web tool that lets any organization describe the AI agents it is using or planning, then returns a Risk Score, a Readiness Score, a risk matrix, the safeguards it must put in place, a human-review plan, and a downloadable governance report written in plain language.
 
 ## Project Status
