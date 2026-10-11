@@ -1,0 +1,41 @@
+id,trigger_condition,safeguard_text,nist_ai_rmf_function,nist_ai_rmf_subcategory,owasp_reference,priority,effort
+SG-001,r_owner != 2,Assign a named accountable owner and document the agent's intended purpose before deployment.,GOVERN,Govern 2.1,,must,hours
+SG-002,autonomy_level >= 3,"Document the agent's permitted actions, prohibited actions, and boundaries of authority.",MAP,Map 3.3,LLM06:2025 Excessive Agency,must,days
+SG-003,autonomy_level >= 3,Restrict the agent to the minimum tools and permissions required for its task.,MAP,Map 4.2,LLM06:2025 Excessive Agency,must,days
+SG-004,autonomy_level >= 3,Require human approval before the agent performs consequential or irreversible actions.,MAP,Map 3.5,LLM06:2025 Excessive Agency,must,days
+SG-005,autonomy_level >= 4,Keep the agent in a test environment until its action limits and failure handling have been verified.,MANAGE,Manage 1.1,LLM06:2025 Excessive Agency,must,days
+SG-006,financial_authority >= 2,"Set transaction and spending limits in enforceable system settings, not only in prompts.",MANAGE,Manage 1.3,LLM06:2025 Excessive Agency,must,days
+SG-007,financial_authority >= 3,"Require an authorized person to approve payments, payroll changes, and other consequential financial actions.",MAP,Map 3.5,LLM06:2025 Excessive Agency,must,days
+SG-008,financial_authority >= 4,Disable uncapped or unrestricted transfers until enforceable limits and independent review are in place.,MANAGE,Manage 1.3,LLM06:2025 Excessive Agency,must,days
+SG-009,oversight_mode >= 3,Introduce a documented review schedule with a named reviewer and time allocated for the work.,GOVERN,Govern 2.1,,must,days
+SG-010,oversight_mode >= 4,Do not deploy the agent for consequential tasks until accountable human oversight is established.,GOVERN,Govern 3.2,LLM06:2025 Excessive Agency,must,days
+SG-011,oversight_mode >= 2 AND failure_severity >= 3,Require human approval for consequential decisions and define which actions cannot be delegated.,MAP,Map 3.5,LLM06:2025 Excessive Agency,must,days
+SG-012,affected_population >= 3,"Identify affected groups and assess how errors could affect access to services, money, or opportunities.",MAP,Map 5.1,,must,days
+SG-013,affected_population >= 3,Test for disparate error rates and document limitations across relevant affected groups.,MEASURE,Measure 2.11,,must,weeks
+SG-014,affected_population >= 4,Require a documented impact review and accountable human approval before deployment.,MAP,Map 5.1,,must,weeks
+SG-015,failure_severity >= 3,Write and test a response plan for plausible high-impact failures before deployment.,MANAGE,Manage 4.3,,must,days
+SG-016,failure_severity >= 4,"Keep the agent out of production until severe failure scenarios, containment, and recovery have been tested.",MANAGE,Manage 4.1,,must,weeks
+SG-017,reversibility == 'no',Require explicit authorization and a documented risk review before irreversible actions.,MANAGE,Manage 1.3,LLM06:2025 Excessive Agency,must,days
+SG-018,reversibility == 'partial',"Document what can be reversed, who can reverse it, and the recovery steps for partial failures.",MANAGE,Manage 4.1,,should,days
+SG-019,data_categories contains 'basic_personal',Limit personal-data access to the fields needed for the agent's stated purpose.,MAP,Map 1.6,LLM02:2025 Sensitive Information Disclosure,must,days
+SG-020,data_categories contains 'sensitive_personal',"Require a documented data-protection review, restricted access, and approved handling procedures.",MAP,Map 1.6,LLM02:2025 Sensitive Information Disclosure,must,weeks
+SG-021,data_categories contains 'special_category',"Require a specialist review of sensitive-data use, access controls, retention, and potential harm before deployment.",MAP,Map 1.6,LLM02:2025 Sensitive Information Disclosure,must,weeks
+SG-022,data_categories != 'none',"Document the data the agent can access, where it comes from, and who is authorized to access it.",MAP,Map 1.6,LLM02:2025 Sensitive Information Disclosure,must,days
+SG-023,r_data_inventory != 2,"Complete and verify a data inventory, then restrict access to the minimum necessary.",MAP,Map 1.6,LLM02:2025 Sensitive Information Disclosure,must,days
+SG-024,tools_and_integrations != '',"Review each connected tool and integration for permissions, data exposure, and unintended actions.",MAP,Map 4.2,LLM06:2025 Excessive Agency,must,days
+SG-025,tools_and_integrations contains 'email',"Restrict outbound email recipients and require approval for sensitive, bulk, or consequential messages.",MAP,Map 4.2,LLM06:2025 Excessive Agency,should,days
+SG-026,autonomy_level >= 2,"Log agent actions, tool calls, relevant decisions, and failures in a form that supports investigation.",MEASURE,Measure 2.3,LLM06:2025 Excessive Agency,must,days
+SG-027,r_logging != 2,"Implement and test audit logging, including timestamps, action outcomes, and reviewable records.",MEASURE,Measure 2.3,,must,days
+SG-028,r_kill_switch != 2,Provide a tested way to stop the agent promptly and prevent further consequential actions.,MANAGE,Manage 4.1,LLM06:2025 Excessive Agency,must,days
+SG-029,r_scope_limits != 2,"Enforce allowed tools, transaction caps, action rates, and other scope limits outside the model prompt.",MAP,Map 4.2,LLM06:2025 Excessive Agency,must,days
+SG-030,r_review_process != 2,"Define who reviews agent activity, what they inspect, how often they review it, and how issues are escalated.",GOVERN,Govern 2.1,,must,days
+SG-031,r_testing != 2,"Test expected behavior, edge cases, misuse, and foreseeable failures before using the agent on real work.",MEASURE,Measure 2.5,,must,weeks
+SG-032,r_incident_plan != 2,"Document how to report, contain, investigate, and recover from an agent-related incident.",MANAGE,Manage 4.3,,must,days
+SG-033,r_vendor_terms != 2,"Review vendor terms for data use, retention, security responsibilities, incident notification, and service changes.",GOVERN,Govern 6.1,,should,days
+SG-034,r_transparency != 2,"Tell affected people when appropriate how the agent is used, its limitations, and how to request human review.",GOVERN,Govern 1.2,,should,days
+SG-035,purpose == '',Document the intended purpose and uses that are outside the agent's approved scope.,MAP,Map 1.1,,must,hours
+SG-036,deployment_status == 'live',"Schedule periodic reassessments and repeat the review when the agent, its tools, or its context changes materially.",GOVERN,Govern 1.5,,should,days
+SG-037,volume_per_week >= 1000,"Set usage limits and monitor error rates, unusual activity, and operational costs at scale.",MEASURE,Measure 1.2,LLM10:2025 Unbounded Consumption,should,days
+SG-038,vendor_or_model != '',Record the model and vendor version and review material changes that could affect system behavior.,MANAGE,Manage 3.1,LLM03:2025 Supply Chain,should,days
+SG-039,autonomy_level >= 2,Treat external documents and tool results as untrusted input; test resistance to instructions embedded in them.,MEASURE,Measure 2.7,LLM01:2025 Prompt Injection,must,weeks
+SG-040,agent_name != '',Validate model outputs before they trigger downstream actions or are displayed as trusted information.,MAP,Map 4.2,LLM05:2025 Improper Output Handling,must,days
