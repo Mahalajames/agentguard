@@ -1,0 +1,29 @@
+{
+"profile_id": "profile_026",
+"agent_name": "Small Business Customer Email Drafting Agent",
+"purpose": "Draft customer service emails using order history and customer messages, with an employee reviewing every draft before sending.",
+"autonomy_level": 1,
+"data_categories": "basic_personal",
+"financial_authority": 0,
+"oversight_mode": 0,
+"affected_population": 1,
+"failure_severity": 1,
+"owner_name": "Customer Service Manager",
+"r_owner": "in_place",
+"r_data_inventory": "in_place",
+"r_scope_limits": "in_place",
+"r_logging": "in_place",
+"r_kill_switch": "in_place",
+"r_review_process": "in_place",
+"r_testing": "in_place",
+"r_incident_plan": "in_place",
+"r_vendor_terms": "in_place",
+"r_transparency": "in_place",
+"expected_tier": "Low",
+"expected_red_lines": [],
+"expected_required_safeguards": [
+"SG-019",
+"SG-022",
+"SG-040"
+]
+}

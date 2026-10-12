@@ -1,0 +1,31 @@
+{
+"agent_name": "Clinic Appointment Reminder Agent",
+"purpose": "Sends appointment reminders to patients and answers basic scheduling questions.",
+"autonomy_level": 2,
+"data_categories": "basic_personal",
+"financial_authority": 0,
+"oversight_mode": 1,
+"affected_population": 2,
+"failure_severity": 2,
+"owner_name": "Clinic Operations Manager",
+"r_owner": "in_place",
+"r_data_inventory": "in_place",
+"r_scope_limits": "in_place",
+"r_logging": "in_place",
+"r_kill_switch": "in_place",
+"r_review_process": "partial",
+"r_testing": "in_place",
+"r_incident_plan": "in_place",
+"r_vendor_terms": "in_place",
+"r_transparency": "in_place",
+"expected_tier": "Moderate",
+"expected_red_lines": [],
+"expected_required_safeguards": [
+"SG-019",
+"SG-022",
+"SG-026",
+"SG-039",
+"SG-040"
+]
+}
+

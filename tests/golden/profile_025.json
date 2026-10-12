@@ -1,0 +1,34 @@
+{
+"profile_id": "profile_025",
+"agent_name": "School Tutoring Recommendation Agent",
+"purpose": "Recommend learning resources and tutoring activities based on student performance, with teachers reviewing recommendations before use.",
+"autonomy_level": 2,
+"data_categories": "basic_personal",
+"financial_authority": 0,
+"oversight_mode": 1,
+"affected_population": 3,
+"failure_severity": 2,
+"owner_name": "School Learning Support Coordinator",
+"r_owner": "in_place",
+"r_data_inventory": "in_place",
+"r_scope_limits": "in_place",
+"r_logging": "in_place",
+"r_kill_switch": "in_place",
+"r_review_process": "in_place",
+"r_testing": "in_place",
+"r_incident_plan": "in_place",
+"r_vendor_terms": "in_place",
+"r_transparency": "in_place",
+"expected_tier": "Moderate",
+"expected_red_lines": [],
+"expected_required_safeguards": [
+"SG-012",
+"SG-013",
+"SG-019",
+"SG-022",
+"SG-026",
+"SG-039",
+"SG-040"
+]
+}
+

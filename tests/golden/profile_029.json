@@ -1,0 +1,31 @@
+{
+"profile_id": "profile_029",
+"agent_name": "Nonprofit Volunteer Scheduling Assistant",
+"purpose": "Suggest volunteer shifts based on availability and scheduling needs, with a coordinator approving the final schedule.",
+"autonomy_level": 2,
+"data_categories": "basic_personal",
+"financial_authority": 0,
+"oversight_mode": 1,
+"affected_population": 1,
+"failure_severity": 1,
+"owner_name": "Volunteer Coordinator",
+"r_owner": "in_place",
+"r_data_inventory": "in_place",
+"r_scope_limits": "in_place",
+"r_logging": "in_place",
+"r_kill_switch": "in_place",
+"r_review_process": "in_place",
+"r_testing": "in_place",
+"r_incident_plan": "in_place",
+"r_vendor_terms": "in_place",
+"r_transparency": "in_place",
+"expected_tier": "Moderate",
+"expected_red_lines": [],
+"expected_required_safeguards": [
+  "SG-019",
+  "SG-022",
+  "SG-026",
+  "SG-039",
+  "SG-040"
+]
+}
