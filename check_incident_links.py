@@ -1,7 +1,6 @@
-
 import csv
-import urllib.request
 import urllib.error
+import urllib.request
 
 CSV_FILE = "data/failure_scenarios.csv"
 
@@ -40,4 +39,3 @@ for incident in incidents:
         print(f"{incident_id}: HTTP {error.code} - CHECK")
     except Exception as error:
         print(f"{incident_id}: COULD NOT VERIFY - {error}")
-        

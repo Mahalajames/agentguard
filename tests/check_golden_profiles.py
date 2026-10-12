@@ -1,4 +1,3 @@
-  
 import ast
 import csv
 import json
@@ -38,9 +37,7 @@ OPERATORS = {
 
 def is_unknown(value):
     """Return True for missing, None, or blank-string values."""
-    return value is None or (
-        isinstance(value, str) and not value.strip()
-    )
+    return value is None or (isinstance(value, str) and not value.strip())
 
 
 def to_known_number(value):
@@ -59,8 +56,7 @@ def evaluate_condition(condition, profile):
 
     if " AND " in condition:
         return all(
-            evaluate_condition(part, profile)
-            for part in condition.split(" AND ")
+            evaluate_condition(part, profile) for part in condition.split(" AND ")
         )
 
     if " contains " in condition:
@@ -123,22 +119,12 @@ def get_data_level(profile):
 def calculate_risk(profile):
     """Calculate the risk tier and red lines without hiding unknowns."""
     values = {
-        "autonomy_level": to_known_number(
-            profile.get("autonomy_level")
-        ),
+        "autonomy_level": to_known_number(profile.get("autonomy_level")),
         "data_level": get_data_level(profile),
-        "financial_authority": to_known_number(
-            profile.get("financial_authority")
-        ),
-        "oversight_mode": to_known_number(
-            profile.get("oversight_mode")
-        ),
-        "affected_population": to_known_number(
-            profile.get("affected_population")
-        ),
-        "failure_severity": to_known_number(
-            profile.get("failure_severity")
-        ),
+        "financial_authority": to_known_number(profile.get("financial_authority")),
+        "oversight_mode": to_known_number(profile.get("oversight_mode")),
+        "affected_population": to_known_number(profile.get("affected_population")),
+        "failure_severity": to_known_number(profile.get("failure_severity")),
     }
 
     financial = values["financial_authority"]
@@ -180,11 +166,7 @@ def calculate_risk(profile):
         red_lines.append("critical_sensitive_data_high_autonomy")
 
     # Automatic High rules, as currently documented in the methodology.
-    auto_high = (
-        financial is not None
-        and oversight == 2
-        and financial >= 3
-    ) or (
+    auto_high = (financial is not None and oversight == 2 and financial >= 3) or (
         affected is not None
         and failure is not None
         and oversight is not None
@@ -197,10 +179,7 @@ def calculate_risk(profile):
     if any(value is None for value in values.values()):
         return None, None, red_lines
 
-    score = 100 * sum(
-        WEIGHTS[field] * values[field] / 4
-        for field in WEIGHTS
-    )
+    score = 100 * sum(WEIGHTS[field] * values[field] / 4 for field in WEIGHTS)
 
     if score >= 75:
         tier = "Critical"
@@ -230,16 +209,12 @@ def max_tier(first, second):
 
 
 def main():
-    with SAFEGUARDS_FILE.open(
-        newline="", encoding="utf-8"
-    ) as file:
+    with SAFEGUARDS_FILE.open(newline="", encoding="utf-8") as file:
         safeguards = list(csv.DictReader(file))
 
     profiles = sorted(GOLDEN_DIR.glob("profile_*.json"))
     if not profiles:
-        raise SystemExit(
-            f"No profile_*.json files found in {GOLDEN_DIR}"
-        )
+        raise SystemExit(f"No profile_*.json files found in {GOLDEN_DIR}")
 
     errors = 0
 
@@ -256,9 +231,7 @@ def main():
 
         for safeguard in safeguards:
             try:
-                if evaluate_condition(
-                    safeguard["trigger_condition"], profile
-                ):
+                if evaluate_condition(safeguard["trigger_condition"], profile):
                     triggered.append(safeguard["id"])
             except (
                 SyntaxError,
@@ -273,26 +246,18 @@ def main():
                 )
                 errors += 1
 
-        expected_safeguards = profile.get(
-            "expected_required_safeguards", []
-        )
+        expected_safeguards = profile.get("expected_required_safeguards", [])
         expected_red_lines = profile.get("expected_red_lines", [])
         score, tier, red_lines = calculate_risk(profile)
 
-        print(
-            f"\n{profile_path.name}: "
-            f"{profile.get('agent_name', 'Unnamed')}"
-        )
+        print(f"\n{profile_path.name}: {profile.get('agent_name', 'Unnamed')}")
 
         if tier is None:
             print("Risk tier: NOT CALCULATED (unknown risk input)")
             print("Known red lines:", ", ".join(red_lines) or "(none)")
 
             if profile.get("expected_tier") is not None:
-                print(
-                    "FAIL: profile expects a tier, "
-                    "but inputs are unknown"
-                )
+                print("FAIL: profile expects a tier, but inputs are unknown")
                 errors += 1
 
             if set(red_lines) != set(expected_red_lines):
@@ -349,4 +314,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    

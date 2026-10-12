@@ -7,7 +7,7 @@ A free web tool that lets any organization describe the AI agents it is using or
 
 ## Project Status
 
-**Status:** Week 0 — Repository setup and project research in progress  
+**Status:** Week 0 — Repository setup and project research in progress
 **Last updated:** October 10, 2026
 
 ## Project Overview
