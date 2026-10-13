@@ -12,6 +12,7 @@ A free web tool that lets any organization describe the AI agents it is using or
 
 **Status:** Week 1 — Foundation and validation complete
 **Last updated:** October 15, 2026
+
 Completed project design, risk assessment methodology, data libraries, upload templates, 30 passing golden test profiles, and automated testing/CI setup. Project updates have been pushed to GitHub, and the methodology and test profiles have been sent to Benjamin for review. 
 
 ## Project Overview
