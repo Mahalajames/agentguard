@@ -177,16 +177,17 @@ def matrix_position(profile: AgentProfile) -> dict[str, int] | None:
     }
 
 
-def score_readiness(profile: ReadinessProfile) -> float | None:
-    """Calculate organizational readiness as a percentage from 0 to 100."""
+def score_readiness(profile: ReadinessProfile) -> float:
+    """Calculate readiness, scoring unknown controls as zero."""
     values = [
         getattr(profile, field_name) for field_name in ReadinessProfile.model_fields
     ]
 
-    if not values or any(value is None for value in values):
-        return None
+    if not values:
+        return 0.0
 
-    return round(sum(values) / (len(values) * 2) * 100, 2)
+    total = sum(value if value is not None else 0 for value in values)
+    return round(total / (len(values) * 2) * 100, 2)
 
 
 def score_agent(
@@ -244,11 +245,13 @@ def condition_matches(
         field, operator, expected = match.groups()
         actual = values.get(field)
 
-        # Unknown values must not trigger a safeguard by assumption.
-        if actual is None:
-            return False
-
+        # Unknown values can trigger a safeguard when a requirement
+        # cannot be verified through a "not equal" condition.
         operator = operator.lower()
+        if actual is None:
+            if operator == "!=":
+                continue
+            return False
         expected = expected.strip()
 
         # Remove surrounding quotes from text values.

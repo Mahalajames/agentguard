@@ -105,6 +105,23 @@ def test_unknown_trigger_value_does_not_match():
     )
 
 
+def test_unknown_not_equal_trigger_is_handled_conservatively():
+    assert condition_matches(
+        "r_owner != 2",
+        {"r_owner": None},
+    )
+
+    assert not condition_matches(
+        "r_owner >= 2",
+        {"r_owner": None},
+    )
+
+    assert not condition_matches(
+        "r_owner != 2 AND autonomy_level >= 3",
+        {"r_owner": None, "autonomy_level": 1},
+    )
+
+
 def test_safeguards_are_returned_for_high_autonomy():
     profile = make_profile(autonomy_level=3)
     safeguards = required_safeguards(profile)
@@ -114,7 +131,18 @@ def test_safeguards_are_returned_for_high_autonomy():
 def test_readiness_score():
     complete = ReadinessProfile(**{field: 2 for field in ReadinessProfile.model_fields})
     assert score_readiness(complete) == 100.0
-    assert score_readiness(ReadinessProfile()) is None
+
+    unknown = ReadinessProfile()
+    assert score_readiness(unknown) == 0.0
+    assert unknown.r_owner is None
+
+    partial = ReadinessProfile(
+        **{
+            field: (None if field == "r_owner" else 2)
+            for field in ReadinessProfile.model_fields
+        }
+    )
+    assert score_readiness(partial) == 90.0
 
 
 def test_score_agent_returns_safeguards_and_review_plan():
