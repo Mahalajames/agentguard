@@ -40,7 +40,7 @@ def get_data_level(raw: str | int | None) -> int | None:
     return max(DATA_LEVELS[item] for item in categories)
 
 
-def calculate_risk_score(profile: AgentProfile) -> float | None:
+def score_risk(profile: AgentProfile) -> float | None:
     """Calculate the weighted risk score from 0 to 100.
 
     Returns None if any required risk dimension is unknown.
@@ -195,7 +195,7 @@ def score_agent(
     readiness: ReadinessProfile | None = None,
 ) -> AgentResult:
     """Calculate risk, readiness, safeguards, and matrix position."""
-    risk_score = calculate_risk_score(profile)
+    risk_score = score_risk(profile)
     red_lines = apply_red_lines(profile)
     safeguards = required_safeguards(profile, readiness)
     tier = finalize_tier(risk_score, red_lines, profile.owner_name)

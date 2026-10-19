@@ -4,13 +4,13 @@ from agentguard_core.models import AgentProfile, ReadinessProfile
 from agentguard_core.scoring import (
     apply_red_lines,
     assign_tier,
-    calculate_risk_score,
     condition_matches,
     finalize_tier,
     matrix_position,
     required_safeguards,
     score_agent,
     score_readiness,
+    score_risk,
 )
 
 
@@ -51,12 +51,12 @@ def test_assign_tier_boundaries(score, expected):
 
 def test_low_risk_profile_score():
     profile = make_profile()
-    assert calculate_risk_score(profile) == 3.75
+    assert score_risk(profile) == 3.75
 
 
 def test_unknown_risk_dimension_returns_none():
     profile = make_profile(autonomy_level=None)
-    assert calculate_risk_score(profile) is None
+    assert score_risk(profile) is None
 
 
 def test_critical_red_line_forces_critical_tier():
@@ -174,8 +174,8 @@ def test_increasing_risk_dimension_never_lowers_score(field, lower, higher):
     lower_profile = make_profile(**{field: lower})
     higher_profile = make_profile(**{field: higher})
 
-    lower_score = calculate_risk_score(lower_profile)
-    higher_score = calculate_risk_score(higher_profile)
+    lower_score = score_risk(lower_profile)
+    higher_score = score_risk(higher_profile)
 
     assert higher_score >= lower_score
 
