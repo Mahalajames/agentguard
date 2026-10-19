@@ -1,20 +1,31 @@
+
 [project]
 name = "agentguard"
 version = "0.1.0"
 description = "AI agent risk and readiness assessment tool"
 requires-python = ">=3.12,<3.13"
-dependencies = []
+dependencies = [
+    "pydantic>=2.0",
+    "typer>=0.12",
+]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
     "ruff>=0.9",
     "pre-commit>=4.0",
+    "pytest-cov>=5.0",
 ]
+
+[project.scripts]
+agentguard = "agentguard_core.cli:app"
 
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["agentguard_core*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
