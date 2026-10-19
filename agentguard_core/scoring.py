@@ -287,6 +287,87 @@ def load_safeguards() -> list[dict[str, str]]:
 SAFEGUARDS = load_safeguards()
 
 
+def load_failure_scenarios() -> list[dict[str, str]]:
+    """Load and validate failure scenarios from the project CSV file."""
+    csv_path = Path(__file__).resolve().parent.parent / "data" / "failure_scenarios.csv"
+
+    required_columns = {
+        "incident_id",
+        "incident_name",
+        "incident_date",
+        "source_name",
+        "source_url",
+        "incident_summary",
+        "agent_type",
+        "risk_dimension",
+        "risk_level",
+        "consequence",
+        "lesson",
+    }
+
+    try:
+        with csv_path.open("r", newline="", encoding="utf-8-sig") as file:
+            reader = csv.DictReader(file)
+
+            if reader.fieldnames is None:
+                raise ValueError("Failure scenarios CSV is missing its header row.")
+
+            if len(reader.fieldnames) != len(set(reader.fieldnames)):
+                raise ValueError(
+                    "Failure scenarios CSV contains duplicate column names."
+                )
+
+            missing_columns = required_columns - set(reader.fieldnames)
+            if missing_columns:
+                raise ValueError(
+                    "Failure scenarios CSV is missing columns: "
+                    f"{sorted(missing_columns)}"
+                )
+
+            scenarios = []
+            seen_ids = set()
+
+            for row_number, row in enumerate(reader, start=2):
+                if None in row:
+                    raise ValueError(
+                        f"Failure scenarios CSV row {row_number} has extra columns."
+                    )
+
+                if any(value is None for value in row.values()):
+                    raise ValueError(
+                        f"Failure scenarios CSV row {row_number} has missing values."
+                    )
+
+                for column in required_columns:
+                    if not row[column].strip():
+                        raise ValueError(
+                            f"Failure scenarios CSV row {row_number} "
+                            f"has an empty required field: {column}."
+                        )
+
+                scenario_id = row["incident_id"].strip()
+
+                if scenario_id in seen_ids:
+                    raise ValueError(
+                        f"Duplicate incident ID {scenario_id!r} on row {row_number}."
+                    )
+
+                seen_ids.add(scenario_id)
+                scenarios.append(row)
+
+            if not scenarios:
+                raise ValueError("Failure scenarios CSV contains no incident records.")
+
+            return scenarios
+
+    except csv.Error as error:
+        raise ValueError(f"Could not parse failure scenarios CSV: {error}") from error
+
+
+# Load failure scenarios once when this module is imported.
+FAILURE_SCENARIOS = load_failure_scenarios()
+
+
 def condition_matches(
     condition: str,
     values: dict[str, object],

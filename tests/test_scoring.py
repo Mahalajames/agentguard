@@ -157,3 +157,42 @@ def test_score_agent_returns_safeguards_and_review_plan():
     assert result.tier == "Moderate"
     assert result.required_safeguards
     assert result.human_review_plan
+
+
+@pytest.mark.parametrize(
+    ("field", "lower", "higher"),
+    [
+        ("autonomy_level", 1, 2),
+        ("data_categories", "internal", "basic_personal"),
+        ("financial_authority", 1, 2),
+        ("oversight_mode", 1, 2),
+        ("affected_population", 1, 2),
+        ("failure_severity", 1, 2),
+    ],
+)
+def test_increasing_risk_dimension_never_lowers_score(field, lower, higher):
+    lower_profile = make_profile(**{field: lower})
+    higher_profile = make_profile(**{field: higher})
+
+    lower_score = calculate_risk_score(lower_profile)
+    higher_score = calculate_risk_score(higher_profile)
+
+    assert higher_score >= lower_score
+
+
+@pytest.mark.parametrize(
+    ("lower", "higher"),
+    [
+        (0, 1),
+        (1, 2),
+        (0, 2),
+    ],
+)
+def test_increasing_readiness_control_never_lowers_score(lower, higher):
+    lower_profile = ReadinessProfile(
+        **{field: 1 for field in ReadinessProfile.model_fields}
+    )
+    higher_profile = lower_profile.model_copy(update={"r_owner": higher})
+    lower_profile = lower_profile.model_copy(update={"r_owner": lower})
+
+    assert score_readiness(higher_profile) >= score_readiness(lower_profile)
