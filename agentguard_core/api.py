@@ -143,7 +143,7 @@ def get_active_assessment(session, token: str) -> Assessment:
     return assessment
 
 
-@app.get("/healthz")
+@app.api_route("/healthz", methods=["GET", "HEAD"])
 def health_check() -> dict[str, str]:
     """Check that the API and database are available."""
     try:
