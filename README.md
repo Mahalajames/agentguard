@@ -13,6 +13,9 @@ A free web tool that lets any organization describe the AI agents it is using or
 **Status:** Week 1 — Foundation and validation complete
 **Last updated:** October 15, 2026
 
+**Status:** Week 2 — Risk scoring engine, automated testing, and CLI complete
+**Last updated:** October 19, 2026
+
 ## Project Overview
 
 AgentGuard helps nonprofits, schools, clinics, and small businesses understand the risks of the AI agents they use or plan to deploy. It is designed to make responsible AI governance more accessible to organizations without dedicated governance teams.
