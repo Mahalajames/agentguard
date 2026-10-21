@@ -5,3 +5,14 @@ __pycache__/
 .env
 .DS_Store
 agentguard.egg-info/
+
+# Test and coverage artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local generated reports
+test_report.pdf
+.neon
+node_modules/
+.env.local

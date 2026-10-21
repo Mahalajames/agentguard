@@ -55,3 +55,10 @@ The planned stack will be documented during project design. The initial directio
 ## License
 
 The license will be added according to the terms of the fellowship agreement.
+
+## Gate 3 — API Verification
+
+Start the API and database:
+
+```bash
+docker compose up -d --build
