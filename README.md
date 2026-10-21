@@ -62,3 +62,12 @@ Start the API and database:
 
 ```bash
 docker compose up -d --build
+```
+
+Verify the API health endpoint:
+
+```bash
+curl -i http://localhost:8000/healthz
+```
+
+Expected response: HTTP 200 with {"status":"ok"}.
