@@ -8,13 +8,19 @@ A free web tool that lets any organization describe the AI agents it is using or
 ## Project Status
 
 **Status:** Week 0 — Repository setup and project research in progress
-**Last updated:** October 10, 2026
+**Last updated:** October 12, 2026
 
 **Status:** Week 1 — Foundation and validation complete
-**Last updated:** October 15, 2026
+**Last updated:** October 16, 2026
 
 **Status:** Week 2 — Risk scoring engine, automated testing, and CLI complete
-**Last updated:** October 19, 2026
+**Last updated:** October 23, 2026
+
+**Status:** Week 3 — Backend, database, and deployment completed
+**Last updated:** October 30, 2026
+
+**Status:** Week 4 — Assessment workflow and results dashboard implemented
+**Last updated:** November 6, 2026
 
 ## Project Overview
 
