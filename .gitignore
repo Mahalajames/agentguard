@@ -16,3 +16,11 @@ test_report.pdf
 .neon
 node_modules/
 .env.local
+
+# Local Neon and editor development tooling
+.agents/
+.vscode/
+neon.ts
+package.json
+package-lock.json
+skills-lock.json
