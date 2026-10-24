@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Results Dashboard | AgentGuard</title>
+  <style>
+    :root {
+      --bg: #F4F7FC;
+      --panel: #FFFFFF;
+      --panel-2: #F8FAFE;
+      --border: #DDE4EF;
+      --text: #171D27;
+      --muted: #596579;
+      --blue: #145BFF;
+      --blue-light: #145BFF;
+      --low: #16794B;
+      --moderate: #946200;
+      --high: #B54708;
+      --critical: #B42332;
+      --focus: #145BFF;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    a { color: var(--blue); }
+    a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 3px;
+    }
+    button, select {
+      font: inherit;
+    }
+    button {
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--blue); }
+    button.primary {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: #FFFFFF;
+      font-weight: 700;
+    }
+    .shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 278px minmax(0, 1fr);
+      grid-template-rows: minmax(0, 1fr) auto;
+      max-width: none;
+      margin: 0;
+      padding: 0;
+    }
+    .topbar {
+      grid-column: 1;
+      grid-row: 1 / 3;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: flex-start;
+      gap: 32px;
+      padding: 30px 22px;
+      background: #111D2B;
+      color: #FFFFFF;
+      border: 0;
+      min-height: 100vh;
+    }
+    .topbar .brand {
+      color: #FFFFFF !important;
+      font-size: 20px;
+      letter-spacing: -.03em;
+      padding: 0 8px 22px;
+      border-bottom: 1px solid #29384B;
+    }
+    .topbar .brand span { color: #5B8CFF; }
+    .topbar .nav {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin: 0 -22px;
+    }
+    .topbar .nav a {
+      color: #DCE7F5;
+      text-decoration: none;
+      padding: 14px 26px;
+      border-left: 4px solid transparent;
+    }
+    .topbar .nav a:hover,
+    .topbar .nav a[href="/dashboard"] {
+      color: #FFFFFF;
+      background: #193B68;
+      border-left-color: #145BFF;
+    }
+    .brand { font-size: 14px; font-weight: 800; letter-spacing: .19em; }
+    .brand span { color: var(--blue); }
+    .nav { display: flex; gap: 18px; flex-wrap: wrap; }
+    .nav a { text-decoration: none; color: var(--muted); }
+    .nav a:hover { color: var(--text); }
+    .eyebrow {
+      color: var(--blue-light); text-transform: uppercase;
+      letter-spacing: .15em; font-size: 11px; font-weight: 800;
+    }
+    h1 { font-size: clamp(30px, 4vw, 48px); line-height: 1.08; margin: 8px 0 12px; }
+    h2 { font-size: 21px; margin: 0 0 14px; }
+    h3 { font-size: 17px; margin: 0 0 10px; }
+    p { margin-top: 0; }
+    .muted { color: var(--muted); }
+    main {
+      grid-column: 2;
+      grid-row: 1;
+      min-width: 0;
+      padding: 28px clamp(20px, 3vw, 46px);
+      background: var(--bg);
+    }
+    .hero { padding: 10px 0 22px; }
+    .hero h1 { color: #172A45; font-size: clamp(32px, 3vw, 44px); }
+    .hero .eyebrow { color: #145BFF; }
+    .hero p { color: var(--muted); max-width: 740px; }
+    .toolbar {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 12px;
+      padding: 14px; border: 1px solid var(--border); border-radius: 12px;
+      background: var(--panel); margin-bottom: 24px;
+    }
+    input {
+      min-width: 250px; flex: 1; background: var(--bg); color: var(--text);
+      border: 1px solid var(--border); border-radius: 8px; padding: 11px;
+      font: inherit;
+    }
+    .status { color: var(--muted); margin: 10px 0 20px; }
+    .status.error { color: #B42332; }
+    .status.success { color: #176A46; }
+    .stats {
+      display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px; margin: 20px 0 28px;
+    }
+    .stat, .panel, .agent-card {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    }
+    .stat { padding: 17px; }
+    .stat .number { font-size: 30px; font-weight: 750; line-height: 1.2; }
+    .stat .label { color: var(--muted); font-size: 13px; margin-top: 6px; }
+    .overview {
+      display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(300px, .8fr);
+      gap: 16px; margin-bottom: 28px;
+    }
+    .panel { padding: 22px; min-width: 0; }
+    .matrix {
+      display: grid; grid-template-columns: 44px repeat(5, minmax(0, 1fr));
+      grid-template-rows: repeat(5, 65px) 32px; gap: 5px;
+    }
+    .matrix-cell {
+      display: flex; align-items: center; justify-content: center;
+      position: relative; border: 1px solid #DDE4EF; border-radius: 5px;
+      font-size: 12px; text-align: center; min-width: 0;
+    }
+    .matrix-cell.low { background: #22C55E; }
+    .matrix-cell.moderate { background: #FACC15; }
+    .matrix-cell.high { background: #F97316; }
+    .matrix-cell.critical { background: #EF4444; }
+    .matrix-cell.axis { border: 0; background: transparent; color: var(--muted); }
+    .matrix-cell .dot {
+      position: absolute; width: 27px; height: 27px; border-radius: 50%;
+      background: var(--blue); border: 2px solid white; color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 800; box-shadow: 0 0 0 2px #F4F7FC;
+    }
+    .matrix-cell .dot:focus-visible { outline: 3px solid var(--focus); }
+    .matrix-legend { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 14px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; }
+    .swatch { width: 12px; height: 12px; border-radius: 3px; }
+    .readiness-number { font-size: 38px; font-weight: 800; }
+    .gauge {
+      width: 100%; height: 12px; border-radius: 10px; background: #E2E8F2;
+      overflow: hidden; margin: 12px 0 18px;
+    }
+    .gauge-fill { height: 100%; background: var(--blue); width: 0; }
+    .section-heading {
+      display: flex; justify-content: space-between; align-items: end;
+      gap: 14px; margin: 32px 0 14px; flex-wrap: wrap;
+    }
+    .agent-grid {
+      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;
+    }
+    .agent-card { padding: 22px; min-width: 0; }
+    .agent-head {
+      display: flex; justify-content: space-between; align-items: start;
+      gap: 12px; border-bottom: 1px solid var(--border); padding-bottom: 14px;
+      margin-bottom: 16px;
+    }
+    .tier {
+      display: inline-block; padding: 4px 9px; border-radius: 5px;
+      font-size: 12px; font-weight: 800; border: 1px solid currentColor;
+      white-space: nowrap;
+    }
+    .tier-low { color: var(--low); }
+    .tier-moderate { color: var(--moderate); }
+    .tier-high { color: var(--high); }
+    .tier-critical { color: var(--critical); }
+    .tier-unknown { color: var(--muted); }
+    .score-line { display: flex; align-items: center; gap: 10px; margin: 9px 0; }
+    .score-label { width: 145px; flex-shrink: 0; font-size: 13px; color: var(--muted); }
+    .score-track { height: 8px; flex: 1; background: #E2E8F2; border-radius: 8px; overflow: hidden; }
+    .score-fill { height: 100%; background: var(--blue); }
+    .score-value { width: 40px; text-align: right; font-size: 12px; }
+    .subsection { margin-top: 22px; }
+    .clean-list { margin: 0; padding-left: 20px; }
+    .clean-list li { margin: 8px 0; }
+    .rule-chip {
+      display: inline-block; margin: 3px 5px 3px 0; padding: 4px 7px;
+      border: 1px solid #E5A9B0; color: #B42332; border-radius: 5px;
+      font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    .scenario {
+      background: var(--panel-2); border-left: 3px solid var(--blue);
+      padding: 13px; border-radius: 0 8px 8px 0;
+    }
+    .scenario a { overflow-wrap: anywhere; }
+    .table-wrap { overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; min-width: 560px; }
+    th, td { text-align: left; padding: 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { color: #33435B; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+    .filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    select { color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 9px; }
+    .checklist { list-style: none; padding: 0; margin: 0; }
+    .checklist li { display: flex; gap: 12px; padding: 13px 0; border-bottom: 1px solid var(--border); }
+    .checklist input { min-width: auto; flex: none; width: 18px; height: 18px; margin-top: 3px; accent-color: var(--blue); }
+    .priority { display: inline-block; border: 1px solid var(--border); border-radius: 4px; padding: 2px 6px; font-size: 11px; text-transform: uppercase; margin-right: 6px; }
+    .empty { color: var(--muted); border: 1px dashed var(--border); padding: 22px; border-radius: 8px; }
+    footer {
+      grid-column: 2;
+      grid-row: 2;
+      margin: 0;
+      padding: 18px clamp(20px, 3vw, 46px);
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 12px;
+      background: #FFFFFF;
+    }
+
+    /* Refined enterprise dashboard styling */
+    body {
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .topbar {
+      gap: 28px;
+      padding: 28px 18px;
+    }
+
+    .topbar .brand {
+      font-size: 18px;
+      letter-spacing: -.02em;
+    }
+
+    .topbar .nav a {
+      font-size: 13px;
+      padding-top: 12px;
+      padding-bottom: 12px;
+    }
+
+    main {
+      padding-top: 30px;
+      padding-bottom: 40px;
+    }
+
+    .hero {
+      padding: 4px 0 20px;
+    }
+
+    .hero h1 {
+      font-size: clamp(28px, 2.5vw, 36px);
+      line-height: 1.2;
+      letter-spacing: -.035em;
+      font-weight: 650;
+      margin: 8px 0 10px;
+    }
+
+    h2 {
+      font-size: 18px;
+      line-height: 1.35;
+      letter-spacing: -.015em;
+      font-weight: 650;
+      margin-bottom: 12px;
+    }
+
+    h3 {
+      font-size: 14px;
+      font-weight: 650;
+    }
+
+    .eyebrow {
+      font-size: 10px;
+      letter-spacing: .12em;
+      font-weight: 700;
+    }
+
+    .toolbar {
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: 8px;
+      margin-bottom: 18px;
+    }
+
+    button {
+      border-radius: 6px;
+      padding: 9px 13px;
+      font-size: 13px;
+      font-weight: 600;
+      transition: background-color .15s ease, border-color .15s ease;
+    }
+
+    button.primary {
+      color: #FFFFFF;
+      font-weight: 600;
+    }
+
+    button.primary:hover {
+      background: #0F4DE0;
+      border-color: #0F4DE0;
+    }
+
+    input, select {
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    .stats {
+      gap: 10px;
+      margin: 16px 0 24px;
+    }
+
+    .stat, .panel, .agent-card {
+      border-radius: 8px;
+      box-shadow: 0 1px 2px rgba(16, 24, 40, .035);
+    }
+
+    .stat {
+      padding: 15px;
+      border-top: 2px solid #D7E2F3;
+    }
+
+    .stat .number {
+      font-size: 26px;
+      font-weight: 650;
+      letter-spacing: -.025em;
+    }
+
+    .stat .label {
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .overview {
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    .panel, .agent-card {
+      padding: 20px;
+    }
+
+    .matrix-cell {
+      border-radius: 3px;
+      font-size: 11px;
+    }
+
+    .matrix-cell .dot {
+      box-shadow: 0 0 0 2px #FFFFFF;
+    }
+
+    .matrix-legend {
+      gap: 14px;
+    }
+
+    .legend-item {
+      font-size: 11px;
+    }
+
+    .readiness-number {
+      font-size: 34px;
+      font-weight: 650;
+      letter-spacing: -.025em;
+    }
+
+    .gauge {
+      height: 8px;
+      border-radius: 4px;
+    }
+
+    .gauge-fill {
+      background: #145BFF;
+    }
+
+    .section-heading {
+      margin: 28px 0 12px;
+    }
+
+    .agent-grid {
+      gap: 14px;
+    }
+
+    .agent-card {
+      padding: 20px;
+    }
+
+    .agent-head {
+      padding-bottom: 12px;
+      margin-bottom: 14px;
+    }
+
+    .tier {
+      border-radius: 4px;
+      padding: 3px 7px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .score-track {
+      height: 6px;
+      border-radius: 3px;
+    }
+
+    .rule-chip {
+      border-radius: 4px;
+      font-size: 11px;
+    }
+
+    .scenario {
+      border-radius: 0 5px 5px 0;
+      padding: 12px;
+    }
+
+    th, td {
+      padding: 11px 12px;
+    }
+
+    th {
+      font-size: 10px;
+      letter-spacing: .07em;
+    }
+
+    .checklist li {
+      gap: 10px;
+      padding: 11px 0;
+    }
+
+    .priority {
+      border-radius: 3px;
+      font-size: 10px;
+    }
+
+    footer {
+      font-size: 11px;
+    }
+
+    @media (max-width: 900px) {
+      .shell { grid-template-columns: 205px minmax(0, 1fr); }
+      main { padding: 22px; }
+      .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .overview { grid-template-columns: 1fr; }
+      .agent-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 560px) {
+      .shell { display: block; }
+      .topbar { min-height: auto; padding: 16px; gap: 14px; }
+      .topbar .brand { padding-bottom: 12px; }
+      .topbar .nav { flex-direction: row; flex-wrap: wrap; margin: 0; gap: 4px; }
+      .topbar .nav a { padding: 10px; border-left: 0; border-bottom: 3px solid transparent; }
+      .topbar .nav a:hover,
+      .topbar .nav a[href="/dashboard"] { border-bottom-color: #145BFF; }
+      main { padding: 18px 14px; }
+      footer { padding: 16px; }
+      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .matrix { grid-template-columns: 30px repeat(5, minmax(0, 1fr)); grid-template-rows: repeat(5, 49px) 28px; gap: 3px; }
+      .matrix-cell { font-size: 10px; }
+      .matrix-cell .dot { width: 23px; height: 23px; }
+      .panel, .agent-card { padding: 15px; }
+      .score-label { width: 112px; font-size: 12px; }
+      input { min-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <a class="brand" href="/guided-assessment" aria-label="AgentGuard home" style="color:var(--text);text-decoration:none">AGENT<span>GUARD</span></a>
+      <nav class="nav" aria-label="Main navigation">
+        <a href="/guided-assessment">Guided assessment</a>
+        <a href="/upload">Upload inventory</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="eyebrow">Risk intelligence / Portfolio view</div>
+        <h1>Results dashboard</h1>
+        <p>See your agents, understand their risk posture, and track the safeguards and human review needed before deployment.</p>
+      </section>
+
+      <form id="load-form" class="toolbar">
+        <label for="assessment-token"><strong>Assessment reference</strong></label>
+        <input id="assessment-token" name="token" autocomplete="off" placeholder="Paste your assessment reference" required>
+        <button class="primary" type="submit">Load results</button>
+        <a href="/upload">Upload another inventory</a>
+      </form>
+      <p id="status" class="status" role="status" aria-live="polite">Enter the assessment reference from your completed assessment.</p>
+
+      <div id="dashboard-content" hidden>
+        <section aria-labelledby="portfolio-title">
+          <div class="section-heading">
+            <div><div class="eyebrow">Portfolio summary</div><h2 id="portfolio-title">Your agent portfolio</h2></div>
+            <p id="assessment-meta" class="muted"></p>
+          </div>
+          <div class="stats" id="tier-stats"></div>
+        </section>
+
+        <section class="overview">
+          <div class="panel">
+            <h2>Risk matrix</h2>
+            <p class="muted">Each numbered point represents an agent. Likelihood and severity use AgentGuard's existing 1–5 matrix positions.</p>
+            <div id="matrix" class="matrix" role="group" aria-label="Five by five risk matrix"></div>
+            <div class="matrix-legend" aria-label="Risk tier legend">
+              <span class="legend-item"><span class="swatch" style="background:#22C55E"></span>Low</span>
+              <span class="legend-item"><span class="swatch" style="background:#FACC15"></span>Moderate</span>
+              <span class="legend-item"><span class="swatch" style="background:#F97316"></span>High</span>
+              <span class="legend-item"><span class="swatch" style="background:#EF4444"></span>Critical</span>
+            </div>
+            <p class="muted" id="matrix-note"></p>
+          </div>
+          <div class="panel">
+            <h2>Readiness overview</h2>
+            <div class="readiness-number" id="readiness-number">—</div>
+            <div class="gauge" role="progressbar" id="readiness-gauge" aria-label="Average portfolio readiness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+              <div id="readiness-fill" class="gauge-fill"></div>
+            </div>
+            <p id="readiness-description" class="muted">Average readiness across assessed agents with available readiness scores.</p>
+            <h3>Interpretation</h3>
+            <p id="readiness-guidance" class="muted"></p>
+          </div>
+        </section>
+
+        <section aria-labelledby="agents-title">
+          <div class="section-heading"><div><div class="eyebrow">Individual results</div><h2 id="agents-title">Agent assessments</h2></div></div>
+          <div id="agent-grid" class="agent-grid"></div>
+        </section>
+
+        <section aria-labelledby="review-title">
+          <div class="section-heading"><div><div class="eyebrow">Oversight actions</div><h2 id="review-title">Human-review plan</h2></div></div>
+          <div class="panel table-wrap">
+            <table>
+              <thead><tr><th scope="col">Agent</th><th scope="col">Risk tier</th><th scope="col">Recommended human review</th></tr></thead>
+              <tbody id="review-table"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section aria-labelledby="safeguards-title">
+          <div class="section-heading">
+            <div><div class="eyebrow">Control library</div><h2 id="safeguards-title">Safeguards checklist</h2></div>
+            <div class="filters">
+              <label for="priority-filter">Filter priority</label>
+              <select id="priority-filter">
+                <option value="all">All priorities</option>
+                <option value="must">Must</option>
+                <option value="should">Should</option>
+              </select>
+            </div>
+          </div>
+          <div class="panel">
+            <p class="muted">Check off safeguards as your team verifies them. Checklist progress is kept for this page session only.</p>
+            <ul id="safeguard-list" class="checklist"></ul>
+            <p id="safeguard-count" class="muted" role="status"></p>
+          </div>
+        </section>
+      </div>
+    </main>
+    <footer>AGENTGUARD / Decision support for responsible AI deployment. Results support human review and do not replace organizational judgment.</footer>
+  </div>
+
+  <script>
+    "use strict";
+    const form = document.getElementById("load-form");
+    const tokenInput = document.getElementById("assessment-token");
+    const statusEl = document.getElementById("status");
+    const content = document.getElementById("dashboard-content");
+    const tierNames = ["Low", "Moderate", "High", "Critical"];
+    let currentAgents = [];
+    let allSafeguards = [];
+
+    function el(tag, className, text) {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text !== undefined && text !== null) node.textContent = String(text);
+      return node;
+    }
+    function tierClass(tier) {
+      return "tier tier-" + (["Low","Moderate","High","Critical"].includes(tier) ? tier.toLowerCase() : "unknown");
+    }
+    function tierOf(agent) {
+      return agent.result && agent.result.tier ? agent.result.tier : "Undetermined";
+    }
+    function safeNumber(value, digits = 0) {
+      return typeof value === "number" && Number.isFinite(value) ? value.toFixed(digits) : "—";
+    }
+    function setStatus(message, kind = "") {
+      statusEl.textContent = message;
+      statusEl.className = "status " + kind;
+    }
+    function makeStat(label, number, tier) {
+      const box = el("div", "stat");
+      box.append(el("div", "number", number));
+      const caption = el("div", "label", label);
+      if (tier) caption.style.color = "var(--" + tier.toLowerCase() + ")";
+      box.append(caption);
+      return box;
+    }
+
+    function renderStats(agents) {
+      const stats = document.getElementById("tier-stats");
+      stats.replaceChildren();
+      stats.append(makeStat("Total agents", agents.length));
+      for (const tier of tierNames) {
+        stats.append(makeStat(tier + " risk", agents.filter(a => tierOf(a) === tier).length, tier));
+      }
+    }
+
+    function renderMatrix(agents) {
+      const matrix = document.getElementById("matrix");
+      matrix.replaceChildren();
+
+      const cells = {};
+      const corner = el("div", "matrix-cell axis", "Severity");
+      corner.setAttribute("aria-label", "Severity axis");
+      matrix.append(corner);
+
+      for (let likelihood = 1; likelihood <= 5; likelihood++) {
+        const label = el("div", "matrix-cell axis", likelihood);
+        label.setAttribute("aria-label", "Likelihood " + likelihood);
+        matrix.append(label);
+      }
+
+      for (let severity = 5; severity >= 1; severity--) {
+        const severityLabel = el("div", "matrix-cell axis", severity);
+        severityLabel.setAttribute("aria-label", "Severity " + severity);
+        matrix.append(severityLabel);
+
+        for (let likelihood = 1; likelihood <= 5; likelihood++) {
+          const cell = el("div", "matrix-cell " + (
+            severity >= 4 && likelihood >= 4 ? "critical" :
+            severity >= 3 && likelihood >= 3 ? "high" :
+            severity >= 2 && likelihood >= 2 ? "moderate" : "low"
+          ), "");
+          cell.setAttribute(
+            "aria-label",
+            "Severity " + severity + ", likelihood " + likelihood
+          );
+          cells[severity + "-" + likelihood] = cell;
+          matrix.append(cell);
+        }
+      }
+
+      const axis = el("div", "matrix-cell axis", "Likelihood →");
+      axis.style.gridColumn = "1 / -1";
+      matrix.append(axis);
+
+      let plotted = 0;
+      agents.forEach((agent, index) => {
+        const pos = agent.result && agent.result.matrix_position;
+        if (
+          !pos ||
+          !Number.isFinite(pos.severity) ||
+          !Number.isFinite(pos.likelihood)
+        ) return;
+
+        // Scoring uses 0–4 positions; the dashboard displays them as 1–5.
+        const severity = Math.max(1, Math.min(5, Math.round(pos.severity) + 1));
+        const likelihood = Math.max(1, Math.min(5, Math.round(pos.likelihood) + 1));
+        const cell = cells[severity + "-" + likelihood];
+        if (!cell) return;
+
+        const dot = el("button", "dot", index + 1);
+        dot.type = "button";
+        dot.title = agent.agent_name + " — " + tierOf(agent);
+        dot.setAttribute(
+          "aria-label",
+          "Agent " + (index + 1) + ": " + agent.agent_name +
+          ", " + tierOf(agent) + ", severity " + severity +
+          ", likelihood " + likelihood + ". Jump to agent details."
+        );
+        dot.addEventListener("click", () => {
+          const card = document.getElementById("agent-card-" + index);
+          if (card) {
+            card.scrollIntoView({ behavior: "smooth", block: "start" });
+            card.focus({ preventScroll: true });
+          }
+        });
+        cell.append(dot);
+        plotted++;
+      });
+
+      document.getElementById("matrix-note").textContent =
+        plotted + " of " + agents.length +
+        " agents plotted. Agents without complete risk inputs cannot be placed on the matrix.";
+    }
+
+    function renderReadiness(agents) {
+      const values = agents.map(a => a.result && a.result.readiness_score).filter(v => typeof v === "number" && Number.isFinite(v));
+      const average = values.length ? values.reduce((sum, v) => sum + v, 0) / values.length : null;
+      document.getElementById("readiness-number").textContent = average === null ? "N/A" : Math.round(average) + "%";
+      document.getElementById("readiness-fill").style.width = average === null ? "0%" : Math.max(0, Math.min(100, average)) + "%";
+      document.getElementById("readiness-gauge").setAttribute("aria-valuenow", average === null ? "0" : String(Math.round(average)));
+      document.getElementById("readiness-description").textContent =
+        values.length + " of " + agents.length + " agents have readiness scores.";
+      document.getElementById("readiness-guidance").textContent = average === null
+        ? "No readiness scores were provided. Complete the readiness questions to evaluate operational preparedness."
+        : average < 50
+          ? "Readiness is limited. Prioritize ownership, testing, monitoring, and incident response before deployment."
+          : average < 80
+            ? "Readiness is developing. Close remaining control gaps and document review before deployment."
+            : "Readiness is comparatively strong. Verify controls in practice and keep monitoring after deployment.";
+    }
+
+    function renderAgentCards(agents) {
+      const grid = document.getElementById("agent-grid");
+      grid.replaceChildren();
+      agents.forEach((agent, index) => {
+        const result = agent.result || {};
+        const profile = agent.profile || {};
+        const card = el("article", "agent-card");
+        card.id = "agent-card-" + index;
+        card.tabIndex = -1;
+        const head = el("div", "agent-head");
+        const titleGroup = el("div");
+        titleGroup.append(el("h3", "", agent.agent_name || "Unnamed agent"));
+        titleGroup.append(el("p", "muted", profile.purpose || "Purpose not provided"));
+        const score = el("div");
+        score.append(el("div", "readiness-number", result.risk_score == null ? "N/A" : safeNumber(result.risk_score, 1)));
+        score.append(el("div", "muted", "Risk score / 100"));
+        head.append(titleGroup, score);
+        const tier = el("span", tierClass(tierOf(agent)), tierOf(agent));
+        head.append(tier);
+        card.append(head);
+
+        card.append(el("h3", "", "Six risk dimensions"));
+        const dimensions = Array.isArray(agent.dimension_scores) ? agent.dimension_scores : [];
+        if (!dimensions.length) {
+          card.append(el("p", "muted", "Dimension breakdown is unavailable."));
+        }
+        dimensions.forEach(d => {
+          const line = el("div", "score-line");
+          line.append(el("div", "score-label", d.name));
+          const track = el("div", "score-track");
+          const fill = el("div", "score-fill");
+          fill.style.width = d.value == null ? "0%" : Math.max(0, Math.min(100, Number(d.value) / 4 * 100)) + "%";
+          track.append(fill);
+          line.append(track, el("div", "score-value", d.value == null ? "Unknown" : d.value + "/4"));
+          card.append(line);
+        });
+
+        const readiness = el("p", "muted", "Readiness: " + (result.readiness_score == null ? "Not provided" : safeNumber(result.readiness_score, 1) + "%"));
+        card.append(readiness);
+
+        const redLines = Array.isArray(result.red_lines) ? result.red_lines : [];
+        const rulesSection = el("div", "subsection");
+        rulesSection.append(el("h3", "", "Triggered rules"));
+        if (redLines.length) {
+          redLines.forEach(rule => rulesSection.append(el("span", "rule-chip", rule)));
+        } else {
+          rulesSection.append(el("p", "muted", "No red-line rules were triggered by the recorded inputs."));
+        }
+        card.append(rulesSection);
+
+        const safeguards = Array.isArray(agent.safeguards) ? agent.safeguards : [];
+        const safeguardSection = el("div", "subsection");
+        safeguardSection.append(el("h3", "", "Top three safeguards"));
+        if (safeguards.length) {
+          const list = el("ol", "clean-list");
+          safeguards.slice(0, 3).forEach(s => list.append(el("li", "", s.text + " [" + s.priority + "]")));
+          safeguardSection.append(list);
+        } else {
+          safeguardSection.append(el("p", "muted", "No triggered safeguards were returned for the available inputs."));
+        }
+        card.append(safeguardSection);
+
+        const scenarioSection = el("div", "subsection");
+        scenarioSection.append(el("h3", "", "Related failure scenario"));
+        if (agent.failure_scenario) {
+          const scenario = agent.failure_scenario;
+          const box = el("div", "scenario");
+          box.append(el("strong", "", scenario.incident_name));
+          box.append(el("p", "muted", scenario.risk_dimension + " · " + scenario.risk_level));
+          box.append(el("p", "", scenario.incident_summary));
+          box.append(el("p", "", "Lesson: " + scenario.lesson));
+          if (scenario.source_url && /^https?:\/\//i.test(scenario.source_url)) {
+            const link = el("a", "", scenario.source_name || "Read source");
+            link.href = scenario.source_url;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            box.append(link);
+          }
+          scenarioSection.append(box);
+        } else {
+          scenarioSection.append(el("p", "muted", "No matching scenario was available."));
+        }
+        card.append(scenarioSection);
+        grid.append(card);
+      });
+    }
+
+    function renderReviewPlan(agents) {
+      const tbody = document.getElementById("review-table");
+      tbody.replaceChildren();
+      agents.forEach(agent => {
+        const tr = document.createElement("tr");
+        const name = el("td", "", agent.agent_name);
+        const tierCell = el("td");
+        tierCell.append(el("span", tierClass(tierOf(agent)), tierOf(agent)));
+        const planCell = el("td");
+        const plan = agent.result && Array.isArray(agent.result.human_review_plan) ? agent.result.human_review_plan : [];
+        if (plan.length) {
+          const list = el("ul", "clean-list");
+          plan.forEach(item => list.append(el("li", "", item)));
+          planCell.append(list);
+        } else {
+          planCell.textContent = "No specific review actions were generated. Confirm appropriate oversight before deployment.";
+        }
+        tr.append(name, tierCell, planCell);
+        tbody.append(tr);
+      });
+    }
+
+    function renderSafeguards(agents) {
+      const unique = new Map();
+      agents.forEach(agent => (agent.safeguards || []).forEach(s => {
+        if (!unique.has(s.id)) unique.set(s.id, {...s, agents: []});
+        unique.get(s.id).agents.push(agent.agent_name);
+      }));
+      allSafeguards = Array.from(unique.values()).sort((a, b) =>
+        (a.priority === b.priority ? a.id.localeCompare(b.id) : a.priority === "must" ? -1 : 1)
+      );
+      updateSafeguardList();
+    }
+
+    function updateSafeguardList() {
+      const filter = document.getElementById("priority-filter").value;
+      const list = document.getElementById("safeguard-list");
+      list.replaceChildren();
+      const selected = allSafeguards.filter(s => filter === "all" || s.priority === filter);
+      selected.forEach(s => {
+        const li = document.createElement("li");
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.id = "check-" + s.id;
+        checkbox.setAttribute("aria-label", "Mark safeguard " + s.id + " complete");
+        const label = document.createElement("label");
+        label.htmlFor = checkbox.id;
+        label.append(el("span", "priority", s.priority), el("strong", "", s.id + " — "));
+        label.append(document.createTextNode(s.text));
+        label.append(el("p", "muted", "Effort: " + (s.effort || "unspecified") + " · Applies to: " + s.agents.join(", ")));
+        li.append(checkbox, label);
+        list.append(li);
+      });
+      document.getElementById("safeguard-count").textContent =
+        selected.length + " safeguards shown · " + allSafeguards.length + " unique safeguards triggered across this portfolio.";
+      if (!selected.length) list.append(el("li", "empty", "No safeguards match this priority filter for the current assessment."));
+    }
+
+    async function loadAssessment(token) {
+      if (!token.trim()) {
+        setStatus("Enter an assessment reference to load results.", "error");
+        return;
+      }
+      setStatus("Loading saved assessment…");
+      content.hidden = true;
+      try {
+        const response = await fetch("/assessments/" + encodeURIComponent(token.trim()) + "/dashboard-data", {
+          headers: { "Accept": "application/json" }
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const detail = data.detail;
+          throw new Error(typeof detail === "string" ? detail : detail && detail.message ? detail.message : "Could not load this assessment. Check the reference and try again.");
+        }
+        currentAgents = Array.isArray(data.agents) ? data.agents : [];
+        if (!currentAgents.length) throw new Error("This assessment has no saved agents to display.");
+        document.getElementById("assessment-meta").textContent =
+          "Created " + new Date(data.created_at).toLocaleString() + " · Reference " + data.token;
+        renderStats(currentAgents);
+        renderMatrix(currentAgents);
+        renderReadiness(currentAgents);
+        renderAgentCards(currentAgents);
+        renderReviewPlan(currentAgents);
+        renderSafeguards(currentAgents);
+        content.hidden = false;
+        setStatus("Loaded " + currentAgents.length + " agent assessment(s).", "success");
+      } catch (error) {
+        setStatus(error.message || "An unexpected error occurred while loading results.", "error");
+      }
+    }
+
+    form.addEventListener("submit", event => {
+      event.preventDefault();
+      const token = tokenInput.value.trim();
+      const url = new URL(window.location.href);
+      url.searchParams.set("token", token);
+      history.replaceState(null, "", url);
+      loadAssessment(token);
+    });
+    document.getElementById("priority-filter").addEventListener("change", updateSafeguardList);
+
+    const params = new URLSearchParams(window.location.search);
+    const initialToken = params.get("token");
+    if (initialToken) {
+      tokenInput.value = initialToken;
+      loadAssessment(initialToken);
+    }
+  </script>
+</body>
+</html>

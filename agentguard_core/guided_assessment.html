@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AgentGuard — Guided Assessment</title>
+<style>
+:root {
+  color-scheme: light;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #202a35;
+  background: #f4f6f8;
+}
+* { box-sizing: border-box; }
+body { margin: 0; line-height: 1.55; }
+main { max-width: 850px; margin: 36px auto; padding: 24px; }
+header, section, .panel {
+  background: white; border: 1px solid #d8dee5;
+  border-radius: 12px; padding: 24px; margin-bottom: 18px;
+}
+h1, h2, h3 { line-height: 1.25; }
+h1 { margin-top: 0; }
+.muted { color: #536171; }
+label { display: block; margin: 12px 0; cursor: pointer; }
+input[type="text"], textarea {
+  display: block; width: 100%; padding: 11px;
+  margin-top: 5px; border: 1px solid #8a96a3;
+  border-radius: 6px; font: inherit;
+}
+input[type="radio"] { margin-right: 9px; }
+button {
+  padding: 11px 17px; border: 1px solid #263849;
+  border-radius: 7px; background: #263849; color: white;
+  font: inherit; cursor: pointer; margin: 5px 5px 5px 0;
+}
+button.secondary { background: white; color: #263849; }
+button:focus-visible, input:focus-visible, textarea:focus-visible {
+  outline: 3px solid #2369b2; outline-offset: 3px;
+}
+button:disabled { opacity: .55; cursor: not-allowed; }
+progress { width: 100%; height: 16px; }
+.option {
+  display: block; border: 1px solid #d8dee5; border-radius: 8px;
+  padding: 12px; margin: 9px 0;
+}
+.option:has(input:checked) { border-color: #2369b2; background: #eef5fc; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+.error { color: #a11b1b; font-weight: 600; }
+.success { border-left: 5px solid #26734d; padding-left: 15px; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+<header>
+  <h1>AgentGuard Guided Assessment</h1>
+  <p>Assess an AI agent's risk and organizational readiness one step at a time.</p>
+  <p class="muted">Answer based on what the agent can actually do today. If you do not know a risk answer, choose “I don't know.” Unknown risk answers will remain unknown rather than being treated as zero risk.</p>
+</header>
+
+<section id="setup">
+  <h2>About this agent</h2>
+  <label for="agentName">Agent name (required)
+    <input id="agentName" type="text" required autocomplete="off">
+  </label>
+  <label for="purpose">What is this agent used for? (optional)
+    <textarea id="purpose" rows="3"></textarea>
+  </label>
+  <label for="ownerName">Responsible person's name (optional)
+    <input id="ownerName" type="text">
+  </label>
+  <label for="ownerRole">Responsible person's role (optional)
+    <input id="ownerRole" type="text">
+  </label>
+  <label for="vendor">Vendor or model (optional)
+    <input id="vendor" type="text">
+  </label>
+  <label for="deployment">Deployment status (optional)
+    <input id="deployment" type="text">
+  </label>
+  <button id="startButton" type="button">Start assessment</button>
+  <p id="setupError" class="error" role="alert"></p>
+</section>
+
+<section id="questionSection" hidden>
+  <p id="questionCount" class="muted"></p>
+  <progress id="progress" max="16" value="0" aria-label="Questionnaire progress"></progress>
+  <h2 id="dimension"></h2>
+  <p id="questionText"></p>
+  <div id="answers"></div>
+  <p id="answerError" class="error" role="alert"></p>
+  <div class="actions">
+    <button id="backButton" class="secondary" type="button">Back</button>
+    <button id="nextButton" type="button">Next</button>
+  </div>
+</section>
+
+<section id="reviewSection" hidden>
+  <h2>Review your answers</h2>
+  <p>Check the agent details and all 16 answers before submitting for scoring.</p>
+  <div id="reviewContent"></div>
+  <p id="reviewError" class="error" role="alert"></p>
+  <div class="actions">
+    <button id="editButton" class="secondary" type="button">Edit answers</button>
+    <button id="submitButton" type="button">Confirm and score agent</button>
+  </div>
+</section>
+
+<section id="resultSection" hidden>
+  <h2>Assessment result</h2>
+  <div id="resultContent" aria-live="polite"></div>
+  <div class="actions">
+    <button id="anotherButton" type="button">Add another agent</button>
+  </div>
+</section>
+</main>
+
+<script>
+const riskQuestions = [
+  {
+    key: "autonomy_level", dimension: "Autonomy",
+    question: "When this agent decides something should happen, what happens next?",
+    options: [
+      ["A person reads its suggestion and does it themselves", 0],
+      ["A person clicks approve on each action", 1],
+      ["It does routine things on its own within set rules", 2],
+      ["It plans several steps and picks its own tools; someone checks later", 3],
+      ["It runs on its own and can start other automations or spending", 4]
+    ]
+  },
+  {
+    key: "data_categories", dimension: "Sensitive data",
+    question: "What is the most sensitive information this agent can see or change?",
+    options: [
+      ["Nothing about people", "none"],
+      ["Internal business data only", "internal"],
+      ["Names and contact details", "basic_personal"],
+      ["Financial, HR, or education records", "sensitive_personal"],
+      ["Health, immigration, children, biometrics, criminal justice, or precise location", "special_category"]
+    ]
+  },
+  {
+    key: "financial_authority", dimension: "Financial authority",
+    question: "Can this agent spend, move, or change money?",
+    options: [
+      ["No", 0],
+      ["It recommends, a person pays", 1],
+      ["It pays small amounts under a hard cap", 2],
+      ["It pays up to a meaningful cap or changes billing, payroll, or benefits", 3],
+      ["No cap, or it can move money between accounts", 4]
+    ]
+  },
+  {
+    key: "oversight_mode", dimension: "Human oversight",
+    question: "Who checks this agent's work, and when?",
+    options: [
+      ["Someone approves every action first", 0],
+      ["Someone approves the important ones; the rest are sampled daily", 1],
+      ["Someone reviews a sample each week", 2],
+      ["Only when the agent flags a problem", 3],
+      ["Nobody is assigned to check", 4]
+    ]
+  },
+  {
+    key: "affected_population", dimension: "Affected populations",
+    question: "Who is on the receiving end of what this agent does?",
+    options: [
+      ["Only our staff, and it does not make decisions about them", 0],
+      ["Our staff; it affects schedules or workload", 1],
+      ["The public, for information only", 2],
+      ["The public, and it affects access to a service, money, or an opportunity", 3],
+      ["Children, students, patients, immigrants, benefit applicants, or people in crisis, with real consequences", 4]
+    ]
+  },
+  {
+    key: "failure_severity", dimension: "Failure consequences",
+    question: "If this agent gets it wrong, what is the worst realistic outcome?",
+    options: [
+      ["A small annoyance we fix instantly", 0],
+      ["A mistake that costs staff time", 1],
+      ["Money lost or data exposed, recoverable in days", 2],
+      ["Someone wrongly denied, discrimination exposure, a breach of regulated data, or legal liability", 3],
+      ["Harm that cannot be undone, a safety risk, or a loss the organization could not survive", 4]
+    ]
+  }
+];
+
+const readinessQuestions = [
+  ["r_owner", "Ownership", "Is one named person responsible for this agent, and is its purpose written down?"],
+  ["r_data_inventory", "Data access", "Do you have a list of exactly what data it can read and change, and is its access limited to that?"],
+  ["r_scope_limits", "Enforced limits", "Are its limits (what tools it can use, how much it can spend, how fast it can act) enforced by settings or code rather than by instructions in a prompt?"],
+  ["r_logging", "Logging", "Does it keep a log of everything it does, and do you keep that log?"],
+  ["r_kill_switch", "Shutdown and recovery", "Can you switch it off in under five minutes, and have you practiced undoing something it did?"],
+  ["r_review_process", "Human review", "Is there a named person who reviews its work on a schedule, with time set aside for it?"],
+  ["r_testing", "Testing", "Did you test it with tricky cases before letting it run on real work?"],
+  ["r_incident_plan", "Incident response", "If it causes a problem, is it written down who gets told and what happens next?"],
+  ["r_vendor_terms", "Vendor terms", "Have you read what the vendor does with your data, whether it trains on it, and how you will hear about model changes?"],
+  ["r_transparency", "Transparency", "Do the people it affects know an agent is involved, and can they reach a human to ask for an explanation or appeal?"]
+].map(([key, dimension, question]) => ({
+  key, dimension, question,
+  options: [
+    ["No or don't know", 0],
+    ["Partly", 1],
+    ["Yes and tested", 2]
+  ]
+}));
+
+const questions = [
+  ...riskQuestions.map(q => ({...q, type: "risk"})),
+  ...readinessQuestions.map(q => ({...q, type: "readiness"}))
+];
+
+const setup = document.getElementById("setup");
+const questionSection = document.getElementById("questionSection");
+const reviewSection = document.getElementById("reviewSection");
+const resultSection = document.getElementById("resultSection");
+const answersBox = document.getElementById("answers");
+let index = 0;
+let answers = {};
+
+function showOnly(section) {
+  [setup, questionSection, reviewSection, resultSection].forEach(s => s.hidden = s !== section);
+}
+
+function agentDetails() {
+  return {
+    agent_name: document.getElementById("agentName").value.trim(),
+    purpose: document.getElementById("purpose").value.trim(),
+    owner_name: document.getElementById("ownerName").value.trim() || null,
+    owner_role: document.getElementById("ownerRole").value.trim() || null,
+    vendor_or_model: document.getElementById("vendor").value.trim() || null,
+    deployment_status: document.getElementById("deployment").value.trim() || null
+  };
+}
+
+function renderQuestion() {
+  const q = questions[index];
+  document.getElementById("questionCount").textContent =
+    `Question ${index + 1} of ${questions.length}`;
+  document.getElementById("progress").value = index + 1;
+  document.getElementById("dimension").textContent = q.dimension;
+  document.getElementById("questionText").textContent = q.question;
+  document.getElementById("answerError").textContent = "";
+  answersBox.replaceChildren();
+
+  const options = q.type === "risk"
+    ? [...q.options, ["I don't know", null]]
+    : q.options;
+
+  options.forEach(([label, value], optionIndex) => {
+    const wrapper = document.createElement("label");
+    wrapper.className = "option";
+    const input = document.createElement("input");
+    input.type = "radio";
+    input.name = q.key;
+    input.value = value === null ? "unknown" : String(value);
+    input.checked = Object.hasOwn(answers, q.key) &&
+      (answers[q.key] === null ? value === null : answers[q.key] === value);
+    input.addEventListener("change", () => {
+      answers[q.key] = value;
+    });
+    wrapper.append(input, document.createTextNode(label));
+    answersBox.append(wrapper);
+  });
+
+  document.getElementById("backButton").disabled = index === 0;
+  document.getElementById("nextButton").textContent =
+    index === questions.length - 1 ? "Review answers" : "Next";
+}
+
+function captureAnswer() {
+  const q = questions[index];
+  const selected = answersBox.querySelector('input[type="radio"]:checked');
+  if (!selected) {
+    document.getElementById("answerError").textContent =
+      "Please choose an answer before continuing.";
+    return false;
+  }
+  if (selected.value === "unknown") answers[q.key] = null;
+  else if (q.key === "data_categories") answers[q.key] = q.options.find(
+    option => String(option[1]) === selected.value
+  )[1];
+  else answers[q.key] = Number(selected.value);
+  return true;
+}
+
+function reviewAnswers() {
+  const details = agentDetails();
+  if (!details.agent_name) {
+    showOnly(setup);
+    document.getElementById("setupError").textContent =
+      "Enter an agent name before reviewing answers.";
+    return;
+  }
+
+  const content = document.getElementById("reviewContent");
+  content.replaceChildren();
+  const title = document.createElement("h3");
+  title.textContent = details.agent_name;
+  content.append(title);
+
+  questions.forEach(q => {
+    const item = document.createElement("div");
+    item.className = "panel";
+    const heading = document.createElement("strong");
+    heading.textContent = `${q.dimension}: ${q.question}`;
+    const answer = document.createElement("p");
+    let display;
+    if (!Object.hasOwn(answers, q.key)) display = "Not answered";
+    else if (q.type === "risk" && answers[q.key] === null) display = "I don't know";
+    else if (q.key === "data_categories") {
+      display = q.options.find(option => option[1] === answers[q.key])?.[0] ?? "Unknown";
+    } else if (q.type === "readiness") {
+      display = q.options.find(option => option[1] === answers[q.key])?.[0] ?? "Unknown";
+    } else {
+      display = q.options.find(option => option[1] === answers[q.key])?.[0] ?? "Unknown";
+    }
+    answer.textContent = `Answer: ${display}`;
+    item.append(heading, answer);
+    content.append(item);
+  });
+
+  showOnly(reviewSection);
+}
+
+document.getElementById("startButton").addEventListener("click", () => {
+  document.getElementById("setupError").textContent = "";
+  if (!document.getElementById("agentName").value.trim()) {
+    document.getElementById("setupError").textContent = "Agent name is required.";
+    document.getElementById("agentName").focus();
+    return;
+  }
+  index = 0;
+  answers = {};
+  showOnly(questionSection);
+  renderQuestion();
+});
+
+document.getElementById("backButton").addEventListener("click", () => {
+  if (index > 0) {
+    captureAnswer();
+    index--;
+    renderQuestion();
+  }
+});
+
+document.getElementById("nextButton").addEventListener("click", () => {
+  if (!captureAnswer()) return;
+  if (index < questions.length - 1) {
+    index++;
+    renderQuestion();
+  } else {
+    reviewAnswers();
+  }
+});
+
+document.getElementById("editButton").addEventListener("click", () => {
+  index = 0;
+  showOnly(questionSection);
+  renderQuestion();
+});
+
+document.getElementById("submitButton").addEventListener("click", async () => {
+  const error = document.getElementById("reviewError");
+  const button = document.getElementById("submitButton");
+  error.textContent = "";
+  button.disabled = true;
+  button.textContent = "Scoring...";
+  try {
+    const profile = {
+      ...agentDetails(),
+      autonomy_level: answers.autonomy_level,
+      data_categories: answers.data_categories,
+      financial_authority: answers.financial_authority,
+      oversight_mode: answers.oversight_mode,
+      affected_population: answers.affected_population,
+      failure_severity: answers.failure_severity
+    };
+    const readiness = {};
+    readinessQuestions.forEach(q => readiness[q.key] = answers[q.key]);
+
+    const response = await fetch("/assessments/guided", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({profile, readiness})
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.detail || "Assessment could not be saved.");
+
+    const scored = result.results?.[0] || {};
+    const container = document.getElementById("resultContent");
+    container.replaceChildren();
+    const summary = document.createElement("div");
+    summary.className = "success";
+    const name = document.createElement("h3");
+    name.textContent = scored.agent_name || profile.agent_name;
+    summary.append(name);
+
+    const tier = document.createElement("p");
+    tier.textContent = `Risk tier: ${scored.tier ?? "Undetermined — one or more risk answers are unknown"}`;
+    summary.append(tier);
+
+    const riskScore = document.createElement("p");
+    riskScore.textContent = `Risk score: ${scored.risk_score ?? "Undetermined"}`;
+    summary.append(riskScore);
+
+    const readinessScore = document.createElement("p");
+    readinessScore.textContent = `Readiness score: ${scored.readiness_score ?? "Not available"}`;
+    summary.append(readinessScore);
+
+    const token = document.createElement("p");
+    token.textContent = `Assessment reference: ${result.token}`;
+    summary.append(token);
+    container.append(summary);
+    showOnly(resultSection);
+  } catch (err) {
+    error.textContent = err.message;
+  } finally {
+    button.disabled = false;
+    button.textContent = "Confirm and score agent";
+  }
+});
+
+document.getElementById("anotherButton").addEventListener("click", () => {
+  ["agentName", "purpose", "ownerName", "ownerRole", "vendor", "deployment"]
+    .forEach(id => document.getElementById(id).value = "");
+  answers = {};
+  index = 0;
+  document.getElementById("setupError").textContent = "";
+  showOnly(setup);
+  document.getElementById("agentName").focus();
+});
+</script>
+</body>
+</html>

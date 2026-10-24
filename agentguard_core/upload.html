@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AgentGuard | Upload Inventory</title>
+  <style>
+    :root {
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #171D27;
+      background: #F4F7FC;
+      font-synthesis: none;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; }
+    .layout { display: flex; min-height: 100vh; }
+    aside {
+      width: 245px; flex-shrink: 0; padding: 30px 20px;
+      background: #171D27; color: #F4F7FC;
+      display: flex; flex-direction: column;
+    }
+    .brand { font-size: 23px; font-weight: 750; letter-spacing: -1px; }
+    .brand span { color: #5B8CFF; }
+    .tagline {
+      color: #A9B8D0; font-size: 10px; letter-spacing: 2px;
+      line-height: 1.8; margin: 8px 0 42px;
+    }
+    nav { display: grid; gap: 8px; }
+    nav a {
+      color: #C7D0DF; text-decoration: none; padding: 13px 14px;
+      border-radius: 7px; font-size: 14px;
+    }
+    nav a.active {
+      background: #263B61; color: white;
+      border-left: 3px solid #4380FF;
+    }
+    .side-note {
+      margin-top: auto; border-top: 1px solid #354050;
+      padding-top: 20px; color: #A9B8D0; font-size: 12px; line-height: 1.7;
+    }
+    main { flex: 1; min-width: 0; padding: 34px clamp(20px, 5vw, 68px); }
+    .topline {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 16px; color: #69778B; font-size: 12px; letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+    .status-pill {
+      border: 1px solid #D5DEEB; border-radius: 30px;
+      padding: 8px 12px; letter-spacing: 0; text-transform: none;
+      color: #33435B; background: white;
+    }
+    .hero {
+      margin: 32px 0 28px; padding: 34px;
+      background: #202A3A; color: white; border-radius: 14px;
+      position: relative; overflow: hidden;
+    }
+    .hero:after {
+      content: ""; position: absolute; width: 240px; height: 240px;
+      right: -65px; top: -110px; border: 1px solid #527FD1;
+      transform: rotate(35deg); border-radius: 32px;
+      box-shadow: 0 0 0 28px #273650, 0 0 0 58px #222F45;
+      opacity: .8;
+    }
+    .eyebrow {
+      color: #85AAFF; text-transform: uppercase;
+      letter-spacing: 2px; font-size: 11px; font-weight: 700;
+    }
+    h1 {
+      font-size: clamp(34px, 4vw, 52px); letter-spacing: -2px;
+      line-height: 1.05; max-width: 570px; margin: 15px 0;
+      font-weight: 650;
+    }
+    .hero p { max-width: 520px; color: #C7D0DF; line-height: 1.7; margin-bottom: 0; }
+    .panel {
+      background: white; border: 1px solid #DDE4EF;
+      border-radius: 12px; padding: 26px; margin-bottom: 20px;
+      box-shadow: 0 5px 18px #24375408;
+    }
+    .section-head { display: flex; gap: 14px; align-items: flex-start; }
+    .number {
+      width: 35px; height: 35px; display: grid; place-items: center;
+      flex-shrink: 0; background: #EAF0FF; color: #145BFF;
+      border-radius: 8px; font-weight: 750;
+    }
+    h2 { font-size: 19px; margin: 4px 0 8px; letter-spacing: -.4px; }
+    .muted { color: #68768A; font-size: 14px; line-height: 1.6; }
+    a { color: #145BFF; }
+    .template-link {
+      display: inline-flex; align-items: center; gap: 9px;
+      margin: 18px 0 0 49px; font-size: 14px; font-weight: 700;
+      text-decoration: none;
+    }
+    .template-link:hover { text-decoration: underline; }
+    .drop-zone {
+      margin-top: 22px; border: 2px dashed #B8C7DF;
+      border-radius: 10px; padding: 38px 18px; text-align: center;
+      background: #F8FAFE; transition: .18s ease;
+    }
+    .drop-zone.dragging {
+      background: #EAF0FF; border-color: #145BFF;
+      transform: scale(1.005);
+    }
+    .upload-icon {
+      width: 54px; height: 54px; border-radius: 15px;
+      background: #E7EEFF; color: #145BFF; display: grid;
+      place-items: center; margin: 0 auto 15px; font-size: 26px;
+    }
+    .drop-zone strong { font-size: 16px; }
+    .drop-zone p { color: #68768A; font-size: 13px; }
+    input[type=file] { display: block; max-width: 100%; margin: 16px auto 0; }
+    button {
+      border: 0; border-radius: 7px; padding: 12px 18px;
+      font-size: 14px; font-weight: 650; cursor: pointer;
+      background: #145BFF; color: white; margin-top: 18px;
+    }
+    button:hover { background: #0E49D1; }
+    button:disabled { opacity: .6; cursor: wait; }
+    button:focus-visible, a:focus-visible, input:focus-visible {
+      outline: 3px solid #145BFF; outline-offset: 3px;
+    }
+    .file-name { font-size: 13px; color: #33435B; margin-top: 14px; }
+    .message { font-size: 14px; line-height: 1.6; }
+    .error-text { color: #B42332; }
+    .success-text { color: #176A46; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 13px; }
+    th, td { text-align: left; padding: 12px; border-bottom: 1px solid #E1E7F0; vertical-align: top; }
+    th { background: #F2F5FA; color: #42516A; }
+    [hidden] { display: none !important; }
+    @media (max-width: 760px) {
+      .layout { display: block; }
+      aside { width: 100%; padding: 20px; }
+      .tagline, .side-note { display: none; }
+      nav { display: flex; flex-wrap: wrap; margin-top: 20px; }
+      nav a { padding: 10px; }
+      main { padding: 22px 15px; }
+      .hero, .panel { padding: 22px; }
+      .hero:after { opacity: .25; }
+      .template-link { margin-left: 0; }
+    }
+  </style>
+</head>
+<body>
+<div class="layout">
+  <aside>
+    <div class="brand">AGENT<span>GUARD</span></div>
+    <div class="tagline">SAFER AGENTS. STRONGER<br>GOVERNANCE.</div>
+    <nav aria-label="Main navigation">
+      <a href="/guided-assessment">Guided Assessment</a>
+      <a href="/upload" class="active" aria-current="page">Upload Inventory</a>
+      <a href="#results">Upload Results</a>
+    </nav>
+    <div class="side-note">CHI EAC<br>AI GOVERNANCE &amp; RISK<br><br>Assessment workspace</div>
+  </aside>
+
+  <main>
+    <div class="topline">
+      <span>Agent inventory / Import</span>
+      <span class="status-pill">● Assessment workspace</span>
+    </div>
+
+    <header class="hero">
+      <div class="eyebrow">Inventory management · 01</div>
+      <h1>Bring your agents into focus.</h1>
+      <p>Validate your inventory, identify data issues, and assess multiple agents using one structured file.</p>
+    </header>
+
+    <section class="panel">
+      <div class="section-head">
+        <div class="number">01</div>
+        <div>
+          <h2>Start with the template</h2>
+          <div class="muted">Use the official column names to help AgentGuard read your inventory correctly.</div>
+        </div>
+      </div>
+      <a class="template-link" href="/template" download>
+        ↓ &nbsp; Download CSV template
+      </a>
+    </section>
+
+    <section class="panel">
+      <div class="section-head">
+        <div class="number">02</div>
+        <div>
+          <h2>Upload your inventory</h2>
+          <div class="muted">Choose a CSV or XLSX file. AgentGuard will validate the rows and score valid agents.</div>
+        </div>
+      </div>
+
+      <form id="upload-form">
+        <div class="drop-zone" id="drop-zone">
+          <div class="upload-icon" aria-hidden="true">↑</div>
+          <strong>Drag and drop your file here</strong>
+          <p>or select a file from your computer</p>
+          <label for="inventory-file">Inventory file (CSV or XLSX)</label>
+          <input id="inventory-file" name="file" type="file" accept=".csv,.xlsx" required>
+        </div>
+        <div class="file-name" id="file-name" aria-live="polite">No file selected.</div>
+        <button id="upload-button" type="submit">Upload and validate →</button>
+      </form>
+      <p class="message" id="status" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="panel" id="results" hidden>
+      <div class="section-head">
+        <div class="number">03</div>
+        <div>
+          <h2>Import summary</h2>
+          <div class="muted">Review the validation results below.</div>
+        </div>
+      </div>
+      <p id="summary" class="message"></p>
+      <p id="dashboard-link" hidden><a id="dashboard-url" href="/dashboard">View Results Dashboard →</a></p>
+      <div id="errors-section" hidden>
+        <h2>Issues to fix</h2>
+        <p class="muted">Use the row and column details to correct your file, then upload the corrected version.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th scope="col">Row</th><th scope="col">Column</th><th scope="col">Issue and suggested action</th></tr></thead>
+            <tbody id="errors-body"></tbody>
+          </table>
+        </div>
+      </div>
+      <p id="clean-message" class="success-text" hidden>No validation issues were reported.</p>
+      <button id="retry-button" type="button" hidden>Choose corrected file</button>
+    </section>
+  </main>
+</div>
+
+<script>
+(() => {
+  const form = document.getElementById("upload-form");
+  const fileInput = document.getElementById("inventory-file");
+  const dropZone = document.getElementById("drop-zone");
+  const fileName = document.getElementById("file-name");
+  const status = document.getElementById("status");
+  const button = document.getElementById("upload-button");
+  const results = document.getElementById("results");
+  const summary = document.getElementById("summary");
+  const dashboardLink = document.getElementById("dashboard-link");
+  const dashboardUrl = document.getElementById("dashboard-url");
+  const errorsSection = document.getElementById("errors-section");
+  const errorsBody = document.getElementById("errors-body");
+  const cleanMessage = document.getElementById("clean-message");
+  const retryButton = document.getElementById("retry-button");
+
+  function showFile() {
+    fileName.textContent = fileInput.files.length
+      ? "Selected: " + fileInput.files[0].name
+      : "No file selected.";
+  }
+
+  function setDroppedFile(file) {
+    if (!file) return;
+    const transfer = new DataTransfer();
+    transfer.items.add(file);
+    fileInput.files = transfer.files;
+    showFile();
+  }
+
+  fileInput.addEventListener("change", showFile);
+
+  ["dragenter", "dragover"].forEach(type => dropZone.addEventListener(type, event => {
+    event.preventDefault();
+    dropZone.classList.add("dragging");
+  }));
+  ["dragleave", "drop"].forEach(type => dropZone.addEventListener(type, event => {
+    event.preventDefault();
+    dropZone.classList.remove("dragging");
+  }));
+  dropZone.addEventListener("drop", event => setDroppedFile(event.dataTransfer.files[0]));
+
+  retryButton.addEventListener("click", () => fileInput.click());
+
+  function addCell(row, value) {
+    const cell = document.createElement("td");
+    cell.textContent = value == null || value === "" ? "—" : String(value);
+    row.appendChild(cell);
+  }
+
+  function showErrors(errors) {
+    errorsBody.replaceChildren();
+    for (const error of errors) {
+      const row = document.createElement("tr");
+      addCell(row, error.row);
+      addCell(row, error.column);
+      addCell(row, error.message);
+      errorsBody.appendChild(row);
+    }
+    errorsSection.hidden = errors.length === 0;
+    cleanMessage.hidden = errors.length !== 0;
+    retryButton.hidden = errors.length === 0;
+  }
+
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+    const file = fileInput.files[0];
+
+    if (!file) {
+      status.textContent = "Please choose a CSV or XLSX file first.";
+      status.className = "message error-text";
+      return;
+    }
+
+    button.disabled = true;
+    status.textContent = "Uploading and validating your inventory…";
+    status.className = "message";
+    results.hidden = true;
+
+    const body = new FormData();
+    body.append("file", file);
+
+    try {
+      const response = await fetch("/assessments/upload", { method: "POST", body });
+      const data = await response.json();
+
+      if (!response.ok) {
+        const detail = data.detail;
+        const message = typeof detail === "string" ? detail :
+          detail && detail.message ? detail.message :
+          "The file could not be processed. Please check it and try again.";
+
+        results.hidden = false;
+        summary.textContent = message;
+        showErrors(detail && Array.isArray(detail.errors) ? detail.errors : []);
+        status.textContent = "Correct the file and upload it again.";
+        status.className = "message error-text";
+        retryButton.hidden = false;
+        return;
+      }
+
+      dashboardLink.hidden = true;
+      const errors = Array.isArray(data.errors) ? data.errors : [];
+      summary.textContent = "Rows found: " + data.total_rows +
+        " · Valid agents: " + data.valid_agents +
+        " · Scored agents: " + data.scored_agents;
+      results.hidden = false;
+      showErrors(errors);
+
+      if (data.token && data.scored_agents > 0) {
+        dashboardUrl.href = "/dashboard?token=" + encodeURIComponent(data.token);
+        dashboardLink.hidden = false;
+      }
+
+      if (errors.length) {
+        status.textContent = "Import completed with issues. Review the table and upload your corrected file.";
+        status.className = "message error-text";
+      } else {
+        status.textContent = "Inventory uploaded and processed successfully.";
+        status.className = "message success-text";
+      }
+    } catch {
+      status.textContent = "Could not connect to AgentGuard. Check that the server is running, then try again.";
+      status.className = "message error-text";
+    } finally {
+      button.disabled = false;
+    }
+  });
+})();
+</script>
+</body>
+</html>

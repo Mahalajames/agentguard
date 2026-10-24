@@ -22,7 +22,13 @@ from agentguard_core.db_models import (
 )
 from agentguard_core.ingestion import IngestionError, ingest_inventory
 from agentguard_core.models import AgentProfile, ReadinessProfile
-from agentguard_core.scoring import score_agent
+from agentguard_core.scoring import (
+    FAILURE_SCENARIOS,
+    RISK_WEIGHTS,
+    SAFEGUARDS,
+    get_data_level,
+    score_agent,
+)
 
 
 @asynccontextmanager
@@ -57,6 +63,36 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="AgentGuard API", lifespan=lifespan)
+
+
+@app.get("/guided-assessment")
+def guided_assessment_page() -> Response:
+    """Display the guided assessment questionnaire."""
+    from pathlib import Path
+
+    html_path = Path(__file__).with_name("guided_assessment.html")
+    html = html_path.read_text(encoding="utf-8")
+    return Response(content=html, media_type="text/html")
+
+
+@app.get("/upload")
+def upload_page() -> Response:
+    """Display the inventory upload interface."""
+    from pathlib import Path
+
+    html_path = Path(__file__).with_name("upload.html")
+    html = html_path.read_text(encoding="utf-8")
+    return Response(content=html, media_type="text/html")
+
+
+@app.get("/dashboard")
+def dashboard_page() -> Response:
+    """Display the assessment results dashboard."""
+    from pathlib import Path
+
+    html_path = Path(__file__).with_name("dashboard.html")
+    html = html_path.read_text(encoding="utf-8")
+    return Response(content=html, media_type="text/html")
 
 
 def cleanup_expired_assessments() -> int:
@@ -317,6 +353,107 @@ def get_assessment(token: str) -> dict:
             "created_at": assessment.created_at.isoformat(),
             "expires_at": assessment.expires_at.isoformat(),
             "agents": agent_results,
+        }
+
+
+@app.get("/assessments/{token}/dashboard-data")
+def get_dashboard_data(token: str) -> dict:
+    """Return assessment results enriched for the results dashboard."""
+    with SessionLocal() as session:
+        assessment = get_active_assessment(session, token)
+        agents = session.query(Agent).filter(Agent.assessment_id == assessment.id).all()
+        output = []
+
+        for agent in agents:
+            record = (
+                session.query(AgentResultRecord)
+                .filter(AgentResultRecord.agent_id == agent.id)
+                .first()
+            )
+            profile = AgentProfile(**agent.profile)
+            result = record.result_data if record is not None else {}
+            data_level = get_data_level(profile.data_categories)
+            dimensions = {
+                "Autonomy": ("autonomy_level", profile.autonomy_level),
+                "Data sensitivity": ("data_sensitivity", data_level),
+                "Financial authority": (
+                    "financial_authority",
+                    profile.financial_authority,
+                ),
+                "Human oversight": ("human_oversight", profile.oversight_mode),
+                "Affected population": (
+                    "affected_population",
+                    profile.affected_population,
+                ),
+                "Failure consequences": (
+                    "failure_consequences",
+                    profile.failure_severity,
+                ),
+            }
+            dimension_scores = [
+                {
+                    "name": label,
+                    "value": value,
+                    "weighted_points": round(RISK_WEIGHTS[key] * value / 4 * 100, 2)
+                    if value is not None
+                    else None,
+                }
+                for label, (key, value) in dimensions.items()
+            ]
+            required = result.get("required_safeguards", [])
+            safeguard_by_id = {item["id"]: item for item in SAFEGUARDS}
+            safeguards = []
+            for entry in required:
+                safeguard_id = entry.split(":", 1)[0].strip()
+                source = safeguard_by_id.get(safeguard_id)
+                if source:
+                    safeguards.append(
+                        {
+                            "id": safeguard_id,
+                            "text": source["safeguard_text"],
+                            "priority": source["priority"].lower(),
+                            "effort": source["effort"],
+                        }
+                    )
+            profile_terms = set()
+            if profile.data_categories:
+                profile_terms.add("privacy and data security")
+            if profile.autonomy_level is not None and profile.autonomy_level >= 3:
+                profile_terms.add("unauthorized actions")
+            if profile.failure_severity is not None and profile.failure_severity >= 3:
+                profile_terms.update({"human safety", "accuracy and human oversight"})
+            if (
+                profile.financial_authority is not None
+                and profile.financial_authority >= 2
+            ):
+                profile_terms.add("financial fraud and misinformation")
+            scenario = next(
+                (
+                    item
+                    for item in FAILURE_SCENARIOS
+                    if any(
+                        term in item["risk_dimension"].lower() for term in profile_terms
+                    )
+                ),
+                None,
+            )
+            output.append(
+                {
+                    "agent_name": agent.agent_name,
+                    "profile": agent.profile,
+                    "result": result,
+                    "dimension_scores": dimension_scores,
+                    "safeguards": safeguards,
+                    "failure_scenario": scenario,
+                }
+            )
+
+        return {
+            "token": assessment.token,
+            "status": assessment.status,
+            "created_at": assessment.created_at.isoformat(),
+            "expires_at": assessment.expires_at.isoformat(),
+            "agents": output,
         }
 
 
