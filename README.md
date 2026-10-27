@@ -79,6 +79,7 @@ curl -i http://localhost:8000/healthz
 Expected response: HTTP 200 with {"status":"ok"}.
 
 
+
 ## Week 5 — Grounding Evaluation
 
 The citation validator was evaluated against 20 synthetic portfolios
@@ -106,4 +107,5 @@ Run the evaluation with:
 ```bash
 python tests/eval/run_eval.py
 ```
+
 
