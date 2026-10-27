@@ -76,36 +76,4 @@ Verify the API health endpoint:
 curl -i http://localhost:8000/healthz
 ```
 
-Expected response: HTTP 200 with {"status":"ok"}.
-
-
-
-## Week 5 — Grounding Evaluation
-
-The citation validator was evaluated against 20 synthetic portfolios
-containing 1–5 agents each. Each portfolio included 21 generated test
-sentences: 20 with valid finding citations and 1 intentionally uncited
-sentence.
-
-| Metric | Result | Target |
-|---|---:|---:|
-| Portfolios evaluated | 20 | 20 |
-| Generated sentences | 420 | — |
-| Retained sentences | 400 | — |
-| Dropped sentences | 20 | — |
-| Grounded sentence rate | 95.24% | 100% retained sentences grounded |
-| Drop rate | 4.76% | <5% |
-
-**Interpretation:** These are synthetic validator test results, not
-measurements of real LLM-generated narrative quality. The validator
-retained only sentences citing valid finding IDs and dropped the
-intentionally uncited sentences. The grounded sentence rate is below
-100% because the evaluation deliberately includes unsupported sentences.
-
-Run the evaluation with:
-
-```bash
-python tests/eval/run_eval.py
-```
-
-
+Expected response: HTTP 200 with {"status":"ok"}. 
