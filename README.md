@@ -22,6 +22,9 @@ A free web tool that lets any organization describe the AI agents it is using or
 **Status:** Week 4 — Assessment workflow and results dashboard implemented
 **Last updated:** November 6, 2026
 
+**Status:** Week 5 — Grounded LLM governance reports and PDF generation implemented
+**Last updated:** October 28, 2026
+
 ## Project Overview
 
 AgentGuard helps nonprofits, schools, clinics, and small businesses understand the risks of the AI agents they use or plan to deploy. It is designed to make responsible AI governance more accessible to organizations without dedicated governance teams.
