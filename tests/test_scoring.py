@@ -196,3 +196,24 @@ def test_increasing_readiness_control_never_lowers_score(lower, higher):
     lower_profile = lower_profile.model_copy(update={"r_owner": lower})
 
     assert score_readiness(higher_profile) >= score_readiness(lower_profile)
+
+
+def test_score_agent_includes_evidence_backed_red_line_findings():
+    profile = make_profile(
+        autonomy_level=3,
+        data_categories="special_category",
+    )
+
+    result = score_agent(profile)
+
+    finding = next(
+        finding for finding in result.findings if finding.rule == "RL-CRIT-03"
+    )
+
+    assert finding.id == "F-RL-CRIT-03"
+    assert set(finding.evidence_fields) == {
+        "data_categories",
+        "autonomy_level",
+    }
+    assert finding.evidence_values["data_categories"] == "special_category"
+    assert finding.evidence_values["autonomy_level"] == 3

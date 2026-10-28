@@ -4,7 +4,12 @@ import csv
 import re
 from pathlib import Path
 
-from agentguard_core.models import AgentProfile, AgentResult, ReadinessProfile
+from agentguard_core.models import (
+    AgentProfile,
+    AgentResult,
+    Finding,
+    ReadinessProfile,
+)
 
 RISK_WEIGHTS = {
     "autonomy_level": 0.15,
@@ -190,6 +195,44 @@ def score_readiness(profile: ReadinessProfile) -> float:
     return round(total / (len(values) * 2) * 100, 2)
 
 
+def build_red_line_findings(profile: AgentProfile) -> list[Finding]:
+    """Create evidence-backed findings for triggered red-line rules."""
+    findings = []
+
+    rule_evidence = {
+        "RL-CRIT-01": ["financial_authority", "oversight_mode"],
+        "RL-CRIT-02": [
+            "affected_population",
+            "failure_severity",
+            "oversight_mode",
+        ],
+        "RL-CRIT-03": ["data_categories", "autonomy_level"],
+        "RL-HIGH-01": ["financial_authority", "oversight_mode"],
+        "RL-HIGH-02": [
+            "affected_population",
+            "failure_severity",
+            "oversight_mode",
+        ],
+    }
+
+    for rule_id in apply_red_lines(profile):
+        evidence_fields = rule_evidence[rule_id]
+        evidence_values = {field: getattr(profile, field) for field in evidence_fields}
+
+        findings.append(
+            Finding(
+                id=f"F-{rule_id}",
+                rule=rule_id,
+                evidence_fields=evidence_fields,
+                evidence_values=evidence_values,
+                text=f"Red-line rule {rule_id} was triggered by the recorded "
+                "assessment values.",
+            )
+        )
+
+    return findings
+
+
 def score_agent(
     profile: AgentProfile,
     readiness: ReadinessProfile | None = None,
@@ -207,6 +250,7 @@ def score_agent(
         tier=tier,
         matrix_position=matrix_position(profile),
         red_lines=red_lines,
+        findings=build_red_line_findings(profile),
         readiness_score=(score_readiness(readiness) if readiness is not None else None),
         required_safeguards=safeguards,
         human_review_plan=review_plan,

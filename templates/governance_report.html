@@ -1,0 +1,393 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AgentGuard Governance Report</title>
+    <style>
+        @page {
+            size: Letter;
+            margin: 0.65in;
+        }
+
+        :root {
+            color-scheme: light;
+            font-family: Arial, Helvetica, sans-serif;
+            color: #202a38;
+            background: #ffffff;
+        }
+
+        body {
+            margin: 0;
+            font-size: 10pt;
+            line-height: 1.5;
+        }
+
+        h1, h2, h3 {
+            line-height: 1.2;
+            color: #17365d;
+        }
+
+        h1 { font-size: 30pt; }
+        h2 {
+            font-size: 18pt;
+            border-bottom: 2px solid #d7e2ef;
+            padding-bottom: 6px;
+            margin-top: 28px;
+        }
+        h3 { font-size: 12pt; }
+
+        .cover {
+            min-height: 6.8in;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            page-break-after: always;
+        }
+
+        .brand {
+            color: #2563a6;
+            font-size: 12pt;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .subtitle, .muted {
+            color: #5c6878;
+        }
+
+        .metadata, .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin: 20px 0;
+        }
+
+        .metric, .agent-card, .panel {
+            border: 1px solid #d7e2ef;
+            border-radius: 6px;
+            padding: 14px;
+            break-inside: avoid;
+        }
+
+        .metric strong {
+            display: block;
+            font-size: 20pt;
+            color: #17365d;
+        }
+
+        .tier {
+            display: inline-block;
+            border: 1px solid #9ba9ba;
+            border-radius: 4px;
+            padding: 2px 7px;
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0 20px;
+            font-size: 9pt;
+        }
+
+        th, td {
+            border: 1px solid #d7e2ef;
+            padding: 7px;
+            text-align: left;
+            vertical-align: top;
+            overflow-wrap: anywhere;
+        }
+
+        th {
+            background: #edf3f9;
+            color: #17365d;
+        }
+
+        ul { padding-left: 20px; }
+        li { margin-bottom: 5px; }
+
+        .agent-card {
+            margin: 12px 0;
+        }
+
+        .agent-card h3 {
+            margin-top: 0;
+        }
+
+        .matrix {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 12px auto;
+        }
+
+        .section {
+            margin-bottom: 24px;
+        }
+
+        .disclaimer {
+            margin-top: 30px;
+            padding: 12px;
+            border: 1px solid #b7c4d3;
+            background: #f5f7fa;
+            font-size: 9pt;
+        }
+
+        .page-break {
+            page-break-before: always;
+        }
+
+        a {
+            color: #174f85;
+        }
+
+        @media screen {
+            body {
+                max-width: 900px;
+                margin: 30px auto;
+                padding: 0 24px;
+            }
+
+            .cover {
+                min-height: 500px;
+            }
+        }
+
+        @media print {
+            .cover {
+                min-height: 8.5in;
+            }
+
+            h2, h3 {
+                break-after: avoid;
+            }
+
+            tr, img {
+                break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="cover">
+        <div class="brand">AgentGuard</div>
+        <h1>AI Agent Governance Report</h1>
+        <p class="subtitle">
+            Risk assessment, readiness findings, and governance planning
+        </p>
+
+        <div class="metadata">
+            <div>
+                <strong>Organization</strong><br>
+                {{ organization_name | default("Organization not specified", true) }}
+            </div>
+            <div>
+                <strong>Assessment date</strong><br>
+                {{ assessment_date | default("Not specified", true) }}
+            </div>
+            <div>
+                <strong>Assessment ID</strong><br>
+                {{ assessment_id | default("Not assigned", true) }}
+            </div>
+            <div>
+                <strong>Agents assessed</strong><br>
+                {{ portfolio.total_agents }}
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="section">
+            <h2>1. Executive Summary</h2>
+            {% if narrative.executive_summary %}
+                <ul>
+                    {% for sentence in narrative.executive_summary %}
+                    <li>{{ sentence }}</li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>No grounded executive summary is available for this assessment.</p>
+            {% endif %}
+        </section>
+
+        <section class="section">
+            <h2>2. Agent Inventory</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Agent</th>
+                        <th>Risk score</th>
+                        <th>Risk tier</th>
+                        <th>Readiness</th>
+                        <th>Matrix position</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for agent in portfolio.results %}
+                    <tr>
+                        <td>{{ agent.agent_name }}</td>
+                        <td>{{ agent.risk_score }}</td>
+                        <td><span class="tier">{{ agent.tier }}</span></td>
+                        <td>{{ agent.readiness_score }}</td>
+                        <td>{{ agent.matrix_position }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5">No agents were included in this assessment.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <section class="section">
+            <h2>3. Risk Matrix</h2>
+            {% if risk_matrix_image %}
+                <img class="matrix"
+                     src="{{ risk_matrix_image }}"
+                     alt="Risk matrix showing assessed agent positions">
+            {% else %}
+                <p class="muted">
+                    Risk matrix image was not provided for this report.
+                    Individual matrix positions are listed in the inventory.
+                </p>
+            {% endif %}
+        </section>
+
+        <section class="section">
+            <h2>4. Agent Assessment Details</h2>
+            {% for agent in portfolio.results %}
+            <article class="agent-card">
+                <h3>{{ agent.agent_name }}</h3>
+                <p>
+                    <strong>Risk tier:</strong> {{ agent.tier }}
+                    &nbsp; | &nbsp;
+                    <strong>Risk score:</strong> {{ agent.risk_score }}
+                    &nbsp; | &nbsp;
+                    <strong>Readiness:</strong> {{ agent.readiness_score }}
+                </p>
+
+                <h4>Recorded Findings</h4>
+                {% if agent.findings %}
+                <ul>
+                    {% for finding in agent.findings %}
+                    <li>
+                        <strong>{{ finding.id }}</strong> —
+                        {{ finding.text }}
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p>No findings were recorded for this agent.</p>
+                {% endif %}
+
+                <h4>Required Safeguards</h4>
+                {% if agent.required_safeguards %}
+                <ul>
+                    {% for safeguard in agent.required_safeguards %}
+                    <li>{{ safeguard }}</li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p>No required safeguards were recorded.</p>
+                {% endif %}
+
+                <h4>Human-Review Plan</h4>
+                {% if agent.human_review_plan %}
+                    {% if agent.human_review_plan is string %}
+                    <p>{{ agent.human_review_plan }}</p>
+                    {% else %}
+                    <ul>
+                        {% for item in agent.human_review_plan %}
+                        <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                {% else %}
+                <p>No human-review plan was recorded.</p>
+                {% endif %}
+            </article>
+            {% endfor %}
+        </section>
+
+        <section class="section page-break">
+            <h2>5. Safeguards Checklist</h2>
+            {% for agent in portfolio.results %}
+            <h3>{{ agent.agent_name }}</h3>
+            {% if agent.required_safeguards %}
+            <ul>
+                {% for safeguard in agent.required_safeguards %}
+                <li>☐ {{ safeguard }}</li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p>No required safeguards were recorded.</p>
+            {% endif %}
+            {% endfor %}
+        </section>
+
+        <section class="section">
+            <h2>6. Human-Review Plan</h2>
+            {% for agent in portfolio.results %}
+            <div class="panel">
+                <h3>{{ agent.agent_name }}</h3>
+                {% if agent.human_review_plan %}
+                    {% if agent.human_review_plan is string %}
+                    <p>{{ agent.human_review_plan }}</p>
+                    {% else %}
+                    <ul>
+                        {% for item in agent.human_review_plan %}
+                        <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                {% else %}
+                <p>No human-review plan was recorded.</p>
+                {% endif %}
+            </div>
+            {% else %}
+            <p>No agents were included in this assessment.</p>
+            {% endfor %}
+        </section>
+
+        <section class="section">
+            <h2>7. 30/60/90-Day Plan</h2>
+            {% if narrative.plan_30_60_90 %}
+            <ul>
+                {% for sentence in narrative.plan_30_60_90 %}
+                <li>{{ sentence }}</li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p>No grounded 30/60/90-day plan is available.</p>
+            {% endif %}
+        </section>
+
+        <section class="section">
+            <h2>8. Methodology</h2>
+            <p>
+                This report summarizes the assessment results, recorded findings,
+                readiness scores, risk classifications, and safeguards produced
+                by AgentGuard. Narrative statements are retained only when they
+                cite valid finding identifiers.
+            </p>
+            <p>
+                Assessment results depend on the completeness and accuracy of
+                the supplied information and the configured assessment rules.
+                Review the underlying findings before making operational
+                decisions.
+            </p>
+        </section>
+
+        <footer class="disclaimer">
+            <strong>Disclaimer:</strong>
+            This report is a governance aid intended to support internal review
+            and decision-making. It is not legal advice, a certification, or a
+            guarantee of safety, compliance, or readiness.
+        </footer>
+    </main>
+</body>
+</html>
