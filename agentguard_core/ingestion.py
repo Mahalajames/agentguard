@@ -47,6 +47,29 @@ def normalize_header(value: Any) -> str:
     return HEADER_ALIASES.get(header, header)
 
 
+def _validate_headers(headers: list[str]) -> None:
+    """Reject missing required columns and duplicate normalized headers."""
+    missing_columns = sorted(REQUIRED_COLUMNS - set(headers))
+
+    if missing_columns:
+        missing_text = ", ".join(missing_columns)
+        raise IngestionError(
+            f"Missing required column(s): {missing_text}. "
+            "Please add the required column and upload the file again."
+        )
+
+    duplicate_headers = sorted(
+        {header for header in headers if header and headers.count(header) > 1}
+    )
+
+    if duplicate_headers:
+        duplicate_text = ", ".join(duplicate_headers)
+        raise IngestionError(
+            f"Duplicate columns found: {duplicate_text}. "
+            "Please rename or remove the duplicate columns."
+        )
+
+
 def _clean_value(value: Any) -> Any:
     """Convert blank cells and whitespace-only strings into None."""
     if isinstance(value, str):
@@ -67,6 +90,8 @@ def _read_rows(
             text = file_bytes.decode("utf-8-sig")
             reader = csv.reader(io.StringIO(text))
             raw_headers = next(reader, [])
+            headers = [normalize_header(value) for value in raw_headers]
+            _validate_headers(headers)
             file_rows = list(reader)
         except (UnicodeDecodeError, csv.Error) as exc:
             raise IngestionError(
@@ -86,6 +111,8 @@ def _read_rows(
                 worksheet = workbook.active
                 all_rows = worksheet.iter_rows(values_only=True)
                 raw_headers = list(next(all_rows, ()))
+                headers = [normalize_header(value) for value in raw_headers]
+                _validate_headers(headers)
                 file_rows = [list(row) for row in all_rows]
             finally:
                 workbook.close()
@@ -156,28 +183,6 @@ def ingest_inventory(file_bytes: bytes, filename: str) -> dict[str, Any]:
     """Read an inventory file and validate its agent and readiness profiles."""
     headers, rows, original_headers = _read_rows(file_bytes, filename)
     errors: list[dict[str, Any]] = []
-
-    # Reject the file only when a required column is missing.
-    missing_columns = sorted(REQUIRED_COLUMNS - set(headers))
-
-    if missing_columns:
-        missing_text = ", ".join(missing_columns)
-        raise IngestionError(
-            f"Missing required column(s): {missing_text}. "
-            "Please add the required column and upload the file again."
-        )
-
-    # Reject duplicate headers after normalization.
-    duplicate_headers = sorted(
-        {header for header in headers if header and headers.count(header) > 1}
-    )
-
-    if duplicate_headers:
-        duplicate_text = ", ".join(duplicate_headers)
-        raise IngestionError(
-            f"Duplicate columns found: {duplicate_text}. "
-            "Please rename or remove the duplicate columns."
-        )
 
     agents = []
     readiness_profiles = []

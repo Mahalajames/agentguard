@@ -5,12 +5,16 @@ import io
 import secrets
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.responses import Response
 from pydantic import BaseModel, ConfigDict
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 from sqlalchemy import delete, text
 
 from agentguard_core.database import SessionLocal
@@ -62,7 +66,10 @@ async def lifespan(app: FastAPI):
             pass
 
 
+limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title="AgentGuard API", lifespan=lifespan)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
 @app.get("/guided-assessment")
@@ -211,12 +218,28 @@ def get_template() -> Response:
 
 
 @app.post("/assessments/upload")
-async def upload_assessment(file: UploadFile = File(...)) -> dict:
+@limiter.limit("5/minute")
+async def upload_assessment(request: Request, file: UploadFile = File(...)) -> dict:
     """Validate and score an uploaded CSV or XLSX inventory."""
     filename = file.filename or ""
+    allowed_extensions = {".csv", ".xlsx"}
+    max_upload_bytes = 5 * 1024 * 1024
 
     try:
-        file_bytes = await file.read()
+        if Path(filename).suffix.lower() not in allowed_extensions:
+            raise HTTPException(
+                status_code=415,
+                detail="Only CSV and XLSX files are supported.",
+            )
+
+        file_bytes = await file.read(max_upload_bytes + 1)
+
+        if len(file_bytes) > max_upload_bytes:
+            raise HTTPException(
+                status_code=413,
+                detail="Upload exceeds the 5 MB file size limit.",
+            )
+
         inventory = ingest_inventory(file_bytes, filename)
     except IngestionError as error:
         raise HTTPException(
@@ -523,7 +546,8 @@ def guided_assessment(request: GuidedAssessmentRequest) -> dict:
 
 
 @app.get("/assessments/{token}/report.pdf")
-def download_assessment_report(token: str) -> Response:
+@limiter.limit("10/minute")
+def download_assessment_report(request: Request, token: str) -> Response:
     """Generate and download a PDF assessment report."""
     buffer = io.BytesIO()
     pdf = canvas.Canvas(buffer, pagesize=letter)
