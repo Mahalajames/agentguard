@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgentGuard | AI Governance & Risk Assessment</title>
+<style>
+:root {
+  --navy:#14243b; --blue:#2563eb; --teal:#0d9488;
+  --bg:#f5f8fc; --text:#243449; --muted:#64748b;
+  --white:#fff; --border:#e2e8f0;
+}
+* {box-sizing:border-box}
+html {scroll-behavior:smooth}
+body {margin:0;background:var(--bg);color:var(--text);
+  font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.6}
+a {color:inherit;text-decoration:none}
+header {position:sticky;top:0;z-index:10;background:rgba(255,255,255,.95);
+  backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+nav {max-width:1160px;margin:auto;padding:16px 24px;display:flex;
+  align-items:center;justify-content:space-between;gap:20px}
+.brand {font-size:22px;font-weight:850;letter-spacing:-1px;color:var(--navy)}
+.brand span {color:var(--blue)}
+.navlinks {display:flex;align-items:center;gap:24px;font-size:14px;font-weight:600}
+.navlinks a:hover {color:var(--blue)}
+.btn {display:inline-block;background:var(--blue);color:white;padding:12px 20px;
+  border-radius:9px;font-weight:700;font-size:14px;box-shadow:0 5px 15px #2563eb30}
+.btn:hover {background:#1d4ed8;transform:translateY(-1px)}
+.btn.secondary {background:white;color:var(--navy);border:1px solid var(--border);box-shadow:none}
+.container {max-width:1160px;margin:auto;padding:0 24px}
+.hero {padding:90px 24px 82px;background:radial-gradient(ellipse at 85% 15%,#dbeafe 0,transparent 38%),linear-gradient(135deg,#f8fbff,#eef5ff)}
+.hero-grid {max-width:1160px;margin:auto;display:grid;grid-template-columns:1.15fr .85fr;gap:55px;align-items:center}
+.eyebrow {color:var(--blue);font-weight:800;font-size:12px;letter-spacing:1.5px;text-transform:uppercase}
+h1 {font-size:clamp(38px,5vw,62px);line-height:1.08;letter-spacing:-2.5px;color:var(--navy);margin:16px 0 20px}
+.hero p {font-size:18px;color:var(--muted);max-width:620px}
+.actions {display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
+.hero-card {background:white;border:1px solid var(--border);border-radius:20px;padding:28px;
+  box-shadow:0 22px 55px #14243b16}
+.hero-card h3 {margin:0 0 18px;color:var(--navy)}
+.metric {display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--border)}
+.metric:last-child {border:0}
+.metric strong {color:var(--navy)}
+.pill {font-size:12px;padding:5px 10px;border-radius:30px;font-weight:700;background:#fef3c7;color:#92400e}
+section {padding:76px 0}
+.section-head {text-align:center;max-width:720px;margin:0 auto 42px}
+.section-head h2 {font-size:34px;line-height:1.2;letter-spacing:-1px;color:var(--navy);margin:8px 0 12px}
+.section-head p {color:var(--muted)}
+.steps,.features,.sample-grid {display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.card {background:white;border:1px solid var(--border);border-radius:15px;padding:23px;
+  box-shadow:0 5px 20px #14243b08}
+.step-num {width:38px;height:38px;border-radius:11px;background:#eaf1ff;color:var(--blue);
+  display:grid;place-items:center;font-weight:850;margin-bottom:15px}
+.card h3 {color:var(--navy);margin:5px 0 8px;font-size:18px}
+.card p {color:var(--muted);font-size:14px;margin:0}
+.matrix-wrap {display:grid;grid-template-columns:1fr 1fr;gap:35px;align-items:center}
+.matrix {display:grid;grid-template-columns:repeat(5,1fr);gap:6px;max-width:440px;margin:auto}
+.cell {aspect-ratio:1;border:0;border-radius:7px;cursor:pointer;font-weight:800;color:#14243b}
+.cell:hover {outline:3px solid var(--navy);outline-offset:2px}
+.level-low {background:#42A982;color:#102F25}
+.level-mod {background:#E9BD48;color:#3F3210}
+.level-high {background:#E8894D;color:#472817}
+.level-critical {background:#D65D63;color:#FFFFFF}
+.matrix-info {background:white;border:1px solid var(--border);padding:28px;border-radius:16px}
+.matrix-info h3 {color:var(--navy)}
+.matrix-info p {color:var(--muted)}
+.legend {display:flex;gap:12px;flex-wrap:wrap;margin-top:18px;font-size:12px}
+.legend span {display:flex;align-items:center;gap:6px}
+.dot {width:11px;height:11px;border-radius:3px;display:inline-block}
+.features {grid-template-columns:repeat(2,1fr)}
+.feature-icon {font-size:24px;margin-bottom:8px}
+.sample-grid {grid-template-columns:repeat(3,1fr)}
+.sample-score {font-size:34px;font-weight:850;color:#b45309}
+.sample-card {background:white;border:1px solid var(--border);padding:24px;border-radius:15px}
+.sample-card h3 {margin:0;color:var(--navy)}
+.sample-card p {color:var(--muted);font-size:14px}
+.note {font-size:12px;color:var(--muted);margin-top:18px}
+.about {background:white}
+.about-grid {display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center}
+.about h2 {font-size:34px;color:var(--navy);line-height:1.2}
+.about p {color:var(--muted)}
+.about-panel {padding:28px;background:#f1f6ff;border-radius:16px;border:1px solid #dbeafe}
+.faq {max-width:850px;margin:auto}
+details {background:white;border:1px solid var(--border);border-radius:11px;padding:17px 20px;margin:10px 0}
+summary {cursor:pointer;font-weight:700;color:var(--navy)}
+details p {color:var(--muted);margin-bottom:0}
+.support {background:linear-gradient(135deg,#14243b,#203d60);color:white;text-align:center}
+.support h2 {font-size:34px;margin:0 0 10px}
+.support p {color:#d5e1ef}
+.support a {color:#a9d4ff;text-decoration:underline}
+footer {padding:25px;text-align:center;color:var(--muted);font-size:13px}
+@media(max-width:800px) {
+ .hero-grid,.matrix-wrap,.about-grid {grid-template-columns:1fr}
+ .steps {grid-template-columns:repeat(2,1fr)}
+ .navlinks {gap:12px;font-size:12px}
+ .navlinks .nav-extra {display:none}
+}
+@media(max-width:540px) {
+ nav {padding:13px 16px}.container {padding:0 17px}
+ .navlinks {gap:10px}.navlinks a:nth-child(2),.navlinks a:nth-child(3) {display:none}
+ .hero {padding:60px 17px}.steps,.features,.sample-grid {grid-template-columns:1fr}
+ section {padding:55px 0}.section-head h2 {font-size:28px}
+}
+</style>
+</head>
+<body>
+<header>
+<nav>
+<a class="brand" href="/">AGENT<span>GUARD</span></a>
+<div class="navlinks">
+<a href="#about">About</a>
+<a href="#how">How it works</a>
+<a href="#faq">FAQ</a>
+<a class="nav-extra" href="#support">Support</a>
+<a class="btn" href="/guided-assessment">Get Started</a>
+</div>
+</nav>
+</header>
+
+<main>
+<div class="hero">
+<div class="hero-grid">
+<div>
+<div class="eyebrow">AI governance made practical</div>
+<h1>Understand your AI risks. Build safer systems.</h1>
+<p>AgentGuard helps organizations assess AI agents, understand potential risks, and identify practical safeguards before deployment.</p>
+<div class="actions">
+<a class="btn" href="/guided-assessment">Start Guided Assessment →</a>
+<a class="btn secondary" href="/upload">Upload Inventory</a>
+</div>
+<p class="note">Designed to make AI governance more approachable for organizations of all sizes.</p>
+</div>
+<div class="hero-card">
+<div class="eyebrow">The AgentGuard approach</div>
+<h3>From uncertainty to action</h3>
+<div class="metric"><span>01 · Assess your AI agents</span><strong>Assess</strong></div>
+<div class="metric"><span>02 · Understand risk levels</span><strong>Analyze</strong></div>
+<div class="metric"><span>03 · Identify practical controls</span><strong>Safeguard</strong></div>
+<div class="metric"><span>04 · Plan next steps</span><strong>Review</strong></div>
+</div>
+</div>
+</div>
+
+<section id="how">
+<div class="container">
+<div class="section-head">
+<div class="eyebrow">A clear process</div>
+<h2>How AgentGuard works</h2>
+<p>A guided process that turns information about your AI systems into understandable findings and actionable recommendations.</p>
+</div>
+<div class="steps">
+<div class="card"><div class="step-num">01</div><h3>Assess</h3><p>Answer guided questions about an AI agent's capabilities, data access, oversight, and organizational readiness.</p></div>
+<div class="card"><div class="step-num">02</div><h3>Analyze</h3><p>Review risk scores, risk tiers, readiness information, and rules triggered by your answers.</p></div>
+<div class="card"><div class="step-num">03</div><h3>Safeguard</h3><p>Identify practical safeguards and governance controls that address the risks found.</p></div>
+<div class="card"><div class="step-num">04</div><h3>Review</h3><p>Use the results to prioritize improvements, assign responsibility, and plan follow-up actions.</p></div>
+</div>
+</div>
+</section>
+
+<section style="background:#edf3fb">
+<div class="container">
+<div class="section-head">
+<div class="eyebrow">Explore the risk matrix</div>
+<h2>See how risk can be understood</h2>
+<p>Select a cell to explore how likelihood and severity combine in a simple illustrative matrix.</p>
+</div>
+<div class="matrix-wrap">
+<div>
+<div class="matrix" id="riskMatrix" aria-label="Interactive illustrative risk matrix"></div>
+<div class="legend">
+<span><i class="dot level-low"></i>Low</span>
+<span><i class="dot level-mod"></i>Moderate</span>
+<span><i class="dot level-high"></i>High</span>
+<span><i class="dot level-critical"></i>Critical</span>
+</div>
+</div>
+<div class="matrix-info" aria-live="polite">
+<div class="eyebrow">Interactive example</div>
+<h3 id="matrixTitle">Select a matrix cell</h3>
+<p id="matrixDescription">Choose any square to see an illustrative combination of likelihood and severity. Actual AgentGuard results are based on assessment responses and scoring rules.</p>
+</div>
+</div>
+</div>
+</section>
+
+<section>
+<div class="container">
+<div class="section-head">
+<div class="eyebrow">Built for practical governance</div>
+<h2>Tools to help you take the next step</h2>
+<p>Whether you are reviewing one AI agent or looking across an inventory, AgentGuard helps make the process clearer.</p>
+</div>
+<div class="features">
+<div class="card"><div class="feature-icon">🧭</div><h3>Guided assessment</h3><p>Work through risk and readiness questions one step at a time, with an option to indicate when information is unknown.</p></div>
+<div class="card"><div class="feature-icon">📁</div><h3>Inventory upload</h3><p>Upload an AI inventory using the provided template and review validation feedback for any rows that need attention.</p></div>
+<div class="card"><div class="feature-icon">📊</div><h3>Risk dashboard</h3><p>Review risk tiers, readiness, portfolio patterns, and individual agent findings in one place.</p></div>
+<div class="card"><div class="feature-icon">🛡️</div><h3>Actionable safeguards</h3><p>Explore prioritized recommendations connected to recognized AI governance and security frameworks.</p></div>
+</div>
+</div>
+</section>
+
+<section style="background:#edf3fb">
+<div class="container">
+<div class="section-head">
+<div class="eyebrow">Example results</div>
+<h2>What an assessment can help reveal</h2>
+<p>The example below uses fictional information to demonstrate the types of insights an assessment may produce.</p>
+</div>
+<div class="sample-grid">
+<div class="sample-card"><div class="eyebrow">Example AI agent</div><h3>Customer Support Agent</h3><p>Illustrative automated customer support system.</p></div>
+<div class="sample-card"><div class="eyebrow">Illustrative risk score</div><div class="sample-score">68 / 100</div><span class="pill">High risk</span><p>A sample score for demonstration only.</p></div>
+<div class="sample-card"><div class="eyebrow">Readiness example</div><h3 style="font-size:30px;color:var(--teal)">60%</h3><p>Illustrative organizational readiness result.</p></div>
+</div>
+<p class="note">These figures are fictional examples, not actual assessment results or a prediction about any organization's AI systems.</p>
+</div>
+</section>
+
+<section id="about" class="about">
+<div class="container about-grid">
+<div>
+<div class="eyebrow">About AgentGuard</div>
+<h2>Making responsible AI adoption easier to navigate.</h2>
+<p>AgentGuard is designed to help organizations understand the risks associated with AI agents and take practical steps toward stronger governance.</p>
+<p>It brings together structured assessment questions, risk scoring, readiness indicators, and safeguards to support more informed decision-making.</p>
+</div>
+<div class="about-panel">
+<h3 style="color:var(--navy);margin-top:0">A decision-support tool</h3>
+<p>AgentGuard is intended to support organizational review and planning. It does not guarantee that an AI system is safe, compliant, or appropriate for a particular use.</p>
+<p>Assessment results are not legal advice, a certification, or a substitute for qualified human review.</p>
+<p><strong>Important:</strong> Assess AI systems, not individual people. Do not upload customer, student, patient, or other personal records.</p>
+</div>
+</div>
+</section>
+
+<section id="faq" style="background:#edf3fb">
+<div class="container">
+<div class="section-head">
+<div class="eyebrow">Common questions</div>
+<h2>Frequently asked questions</h2>
+</div>
+<div class="faq">
+<details><summary>Who is AgentGuard for?</summary><p>AgentGuard is designed for organizations that use or are considering AI agents, including nonprofits, schools, clinics, and small businesses. It aims to make AI risk and governance concepts more approachable.</p></details>
+<details><summary>What if I do not know an answer?</summary><p>The guided assessment includes an “I don't know” option where applicable. Unknown answers are kept distinct rather than automatically treated as zero risk.</p></details>
+<details><summary>Does a low risk score mean an AI agent is completely safe?</summary><p>No. Scores are decision-support indicators based on the information provided. They do not guarantee safety or eliminate the need for ongoing monitoring and human judgment.</p></details>
+<details><summary>Does AgentGuard certify AI systems?</summary><p>No. AgentGuard is not a certification service and does not establish legal or regulatory compliance.</p></details>
+<details><summary>What information should I avoid uploading?</summary><p>Do not upload customer, student, patient, employee, or other personal records. Provide information about the AI system and its organizational controls instead.</p></details>
+<details><summary>How do I get started?</summary><p>You can begin with the guided assessment or use the inventory upload workflow if you already have an AI inventory prepared.</p></details>
+</div>
+</div>
+</section>
+
+<section id="support" class="support">
+<div class="container">
+<div class="eyebrow" style="color:#9cc8ff">Need assistance?</div>
+<h2>We're here to help.</h2>
+<p>For questions or support, contact ChiEAC.</p>
+<p><strong>Email:</strong> <a href="mailto:benjamin@chieac.org">benjamin@chieac.org</a></p>
+<p><strong>Phone:</strong> <a href="tel:7735990267">773-599-0267</a></p>
+<div class="actions" style="justify-content:center">
+<a class="btn" href="/guided-assessment" style="background:white;color:var(--navy)">Start Your Assessment</a>
+</div>
+</div>
+</section>
+</main>
+<footer>
+<strong>AGENTGUARD</strong> · AI governance and risk assessment<br>
+<span>Decision support for more informed AI adoption.</span>
+</footer>
+
+<script>
+const matrix = document.getElementById("riskMatrix");
+const levels = ["Low","Moderate","High","Critical"];
+function getLevel(score) {
+  if (score <= 3) return "Low";
+  if (score <= 8) return "Moderate";
+  if (score <= 15) return "High";
+  return "Critical";
+}
+for (let severity = 5; severity >= 1; severity--) {
+  for (let likelihood = 1; likelihood <= 5; likelihood++) {
+    const score = severity * likelihood;
+    const level = getLevel(score);
+    const cell = document.createElement("button");
+    cell.type = "button";
+    cell.className = "cell level-" + level.toLowerCase().replace("moderate","mod");
+    cell.textContent = level === "Low" ? "L" : level === "Moderate" ? "M" : level === "High" ? "H" : "C";
+    cell.setAttribute("aria-label", level + " illustrative risk, severity " + severity + ", likelihood " + likelihood);
+    cell.addEventListener("click", () => {
+      document.getElementById("matrixTitle").textContent = level + " illustrative risk";
+      document.getElementById("matrixDescription").textContent =
+        "This example combines severity " + severity + " with likelihood " + likelihood +
+        ". The result is classified as " + level + " in this demonstration. The actual AgentGuard scoring methodology uses assessment responses and defined scoring rules.";
+    });
+    matrix.appendChild(cell);
+  }
+}
+</script>
+</body>
+</html>

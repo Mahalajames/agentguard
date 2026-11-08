@@ -2,6 +2,7 @@
 
 import asyncio
 import io
+import logging
 import secrets
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
@@ -70,6 +71,14 @@ limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title="AgentGuard API", lifespan=lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+@app.get("/")
+def homepage() -> Response:
+    """Display the AgentGuard homepage."""
+    html_path = Path(__file__).with_name("homepage.html")
+    html = html_path.read_text(encoding="utf-8")
+    return Response(content=html, media_type="text/html")
 
 
 @app.get("/guided-assessment")
@@ -530,6 +539,7 @@ def guided_assessment(request: GuidedAssessmentRequest) -> dict:
                     )
                 )
     except Exception as error:
+        logging.exception("Guided assessment save failed")
         raise HTTPException(
             status_code=500,
             detail="The guided assessment could not be saved.",
