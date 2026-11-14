@@ -149,6 +149,8 @@
       <a href="/guided-assessment">Guided Assessment</a>
       <a href="/upload" class="active" aria-current="page">Upload Inventory</a>
       <a href="#results">Upload Results</a>
+      <a href="/dashboard">Results Dashboard</a>
+      <a href="/account">My Account</a>
     </nav>
     <div class="side-note">CHI EAC<br>AI GOVERNANCE &amp; RISK<br><br>Assessment workspace</div>
   </aside>
@@ -211,6 +213,14 @@
       </div>
       <p id="summary" class="message"></p>
       <p id="dashboard-link" hidden><a id="dashboard-url" href="/dashboard">View Results Dashboard →</a></p>
+      <section id="upload-save-panel" hidden class="panel" style="margin:18px 0;padding:20px;">
+        <h3>Keep your assessment</h3>
+        <p>Save these results to your account so you can return to them later.</p>
+        <button id="upload-save-button" type="button">Save to my account</button>
+        <p><a id="upload-signup-link" href="/signup">Create an account</a> or
+        <a id="upload-login-link" href="/login">sign in</a></p>
+        <p id="upload-save-message" role="status"></p>
+      </section>
       <div id="errors-section" hidden>
         <h2>Issues to fix</h2>
         <p class="muted">Use the row and column details to correct your file, then upload the corrected version.</p>
@@ -243,6 +253,34 @@
   const errorsBody = document.getElementById("errors-body");
   const cleanMessage = document.getElementById("clean-message");
   const retryButton = document.getElementById("retry-button");
+  const savePanel = document.getElementById("upload-save-panel");
+  const saveButton = document.getElementById("upload-save-button");
+  const saveMessage = document.getElementById("upload-save-message");
+  let completedAssessmentToken = "";
+
+  saveButton.addEventListener("click", async () => {
+    if (!completedAssessmentToken) return;
+    saveButton.disabled = true;
+    saveButton.textContent = "Saving...";
+    try {
+      const response = await fetch(
+        "/assessments/" + encodeURIComponent(completedAssessmentToken) + "/claim",
+        {method: "POST"}
+      );
+      const data = await response.json().catch(() => ({}));
+      if (response.status === 401) {
+        window.location.href = "/signup?claim=" + encodeURIComponent(completedAssessmentToken);
+        return;
+      }
+      if (!response.ok) throw new Error(data.detail || "Unable to save assessment.");
+      savePanel.hidden = true;
+      saveMessage.textContent = "Assessment saved to your account.";
+    } catch (err) {
+      saveMessage.textContent = err.message || "Unable to save assessment.";
+      saveButton.disabled = false;
+      saveButton.textContent = "Try again";
+    }
+  });
 
   function showFile() {
     fileName.textContent = fileInput.files.length
@@ -330,6 +368,8 @@
       }
 
       dashboardLink.hidden = true;
+      savePanel.hidden = true;
+      completedAssessmentToken = "";
       const errors = Array.isArray(data.errors) ? data.errors : [];
       summary.textContent = "Rows found: " + data.total_rows +
         " · Valid agents: " + data.valid_agents +
@@ -338,8 +378,16 @@
       showErrors(errors);
 
       if (data.token && data.scored_agents > 0) {
-        dashboardUrl.href = "/dashboard?token=" + encodeURIComponent(data.token);
+        completedAssessmentToken = data.token;
+        const claimQuery = "?claim=" + encodeURIComponent(completedAssessmentToken);
+        dashboardUrl.href = "/dashboard?token=" + encodeURIComponent(completedAssessmentToken);
+        document.getElementById("upload-signup-link").href = "/signup" + claimQuery;
+        document.getElementById("upload-login-link").href = "/login" + claimQuery;
+        saveButton.disabled = false;
+        saveButton.textContent = "Save to my account";
+        saveMessage.textContent = "";
         dashboardLink.hidden = false;
+        savePanel.hidden = false;
       }
 
       if (errors.length) {

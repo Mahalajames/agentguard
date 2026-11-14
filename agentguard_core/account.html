@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Account | AgentGuard</title>
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0; min-height: 100vh; font-family: Arial, sans-serif;
+  background: #f3f6fa; color: #17263d;
+}
+.topbar {
+  background: #14243b; color: white; padding: 20px 7%;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.brand { color: white; text-decoration: none; font-weight: 800; letter-spacing: 1px; }
+.brand span { color: #76a7ff; }
+.topbar a:not(.brand) { color: white; text-decoration: none; margin-left: 20px; }
+main { width: min(100% - 32px, 760px); margin: 64px auto; }
+.card {
+  background: white; border-radius: 14px; padding: 36px;
+  box-shadow: 0 8px 30px rgba(20,36,59,.08);
+}
+h1 { margin: 0 0 10px; font-size: 30px; }
+.subtitle { color: #65748a; line-height: 1.6; margin: 0 0 28px; }
+label { display: block; font-weight: 700; margin: 18px 0 8px; }
+input {
+  width: 100%; padding: 13px 14px; border: 1px solid #ccd5e1;
+  border-radius: 7px; font-size: 16px;
+}
+button, .primary {
+  display: inline-block; border: 0; border-radius: 7px;
+  background: #3269c8; color: white; padding: 13px 20px;
+  font-size: 15px; font-weight: 700; cursor: pointer;
+  text-decoration: none;
+}
+button:hover, .primary:hover { background: #2455a7; }
+form button { width: 100%; margin-top: 24px; }
+.message { margin-top: 16px; color: #b42318; line-height: 1.5; }
+.switch { margin-top: 22px; color: #65748a; }
+.switch a, .assessment a { color: #3269c8; font-weight: 700; }
+.hint { color: #65748a; font-size: 13px; margin-top: 7px; }
+@media (max-width: 600px) {
+  .topbar { padding: 18px; }
+  .topbar a:not(.brand) { margin-left: 10px; font-size: 13px; }
+  main { margin: 32px auto; }
+  .card { padding: 24px; }
+}
+
+.assessment {
+  border: 1px solid #e0e6ee; border-radius: 10px;
+  padding: 20px; margin-top: 16px;
+}
+.assessment h3 { margin: 0 0 8px; font-size: 17px; }
+.meta { color: #65748a; font-size: 14px; margin-bottom: 16px; }
+.actions { display: flex; gap: 18px; flex-wrap: wrap; }
+.actions a { text-decoration: none; }
+
+.assessment a.primary {
+  color: #fff;
+  background: #3269c8;
+  border: 1px solid #3269c8;
+}
+.assessment a.primary:hover {
+  color: #fff;
+  background: #2455a7;
+  border-color: #2455a7;
+}
+.assessment a.primary:focus-visible {
+  outline: 3px solid #93b4f5;
+  outline-offset: 3px;
+}
+.secondary { color: #3269c8; font-weight: 700; }
+.empty { padding: 28px 0; color: #65748a; }
+.account-head { display: flex; justify-content: space-between; gap: 16px; align-items: center; }
+.logout { background: transparent; color: #3269c8; border: 1px solid #3269c8; }
+.logout:hover { background: #edf3ff; }
+@media (max-width: 600px) { .account-head { align-items: flex-start; flex-direction: column; } }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="/">AGENT<span>GUARD</span></a>
+  <div><a href="/">Home</a></div>
+</header>
+<main>
+  <section class="card">
+    <div class="account-head">
+      <div>
+        <h1>My account</h1>
+        <p class="subtitle" id="account-email">Loading your account...</p>
+      </div>
+      <button class="logout" id="logout-button" type="button">Sign out</button>
+    </div>
+    <h2>Assessment history</h2>
+    <p class="subtitle">Your saved assessments and downloadable reports.</p>
+    <div id="assessment-list"><p class="empty">Loading assessments...</p></div>
+    <p class="message" id="message" role="alert"></p>
+  </section>
+</main>
+<script>
+const list = document.getElementById("assessment-list");
+const message = document.getElementById("message");
+
+function makeLink(label, href, className) {
+  const link = document.createElement("a");
+  link.textContent = label;
+  link.href = href;
+  if (className) link.className = className;
+  return link;
+}
+
+async function loadAccount() {
+  try {
+    const [meResponse, assessmentsResponse] = await Promise.all([
+      fetch("/auth/me", { credentials: "same-origin" }),
+      fetch("/account/assessments", { credentials: "same-origin" })
+    ]);
+
+    if (meResponse.status === 401 || assessmentsResponse.status === 401) {
+      window.location.href = "/login";
+      return;
+    }
+
+    const me = await meResponse.json();
+    const data = await assessmentsResponse.json();
+
+    if (!meResponse.ok || !assessmentsResponse.ok) {
+      throw new Error("We couldn't load your account. Please try again.");
+    }
+
+    document.getElementById("account-email").textContent = me.email || "";
+
+    list.replaceChildren();
+
+    if (!data.assessments || data.assessments.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "empty";
+      empty.textContent = "You haven't saved any assessments yet.";
+      list.appendChild(empty);
+      return;
+    }
+
+    for (const item of data.assessments) {
+      const card = document.createElement("article");
+      card.className = "assessment";
+
+      const heading = document.createElement("h3");
+      heading.textContent = "Agent assessment";
+
+      const meta = document.createElement("p");
+      meta.className = "meta";
+      const date = item.created_at ? new Date(item.created_at).toLocaleString() : "Date unavailable";
+      meta.textContent = date + " · " + (item.status || "Saved");
+
+      const actions = document.createElement("div");
+      actions.className = "actions";
+
+      const token = encodeURIComponent(item.token);
+      actions.appendChild(makeLink("View results", "/dashboard?token=" + token, "primary"));
+      actions.appendChild(makeLink("Download PDF", "/assessments/" + token + "/report.pdf", "secondary"));
+
+      card.append(heading, meta, actions);
+      list.appendChild(card);
+    }
+  } catch (error) {
+    message.textContent = error.message || "Unable to load your account.";
+    list.replaceChildren();
+  }
+}
+
+document.getElementById("logout-button").addEventListener("click", async () => {
+  const button = document.getElementById("logout-button");
+  button.disabled = true;
+  try {
+    await fetch("/auth/logout", {
+      method: "POST",
+      credentials: "same-origin"
+    });
+  } finally {
+    window.location.href = "/";
+  }
+});
+
+loadAccount();
+</script>
+</body>
+</html>

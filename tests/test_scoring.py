@@ -6,6 +6,7 @@ from agentguard_core.scoring import (
     assign_tier,
     condition_matches,
     finalize_tier,
+    human_review_plan,
     matrix_position,
     required_safeguards,
     score_agent,
@@ -217,3 +218,66 @@ def test_score_agent_includes_evidence_backed_red_line_findings():
     }
     assert finding.evidence_values["data_categories"] == "special_category"
     assert finding.evidence_values["autonomy_level"] == 3
+
+
+@pytest.mark.parametrize(
+    ("tier", "required_phrases"),
+    [
+        ("Low", ["monthly sample of 5%", "annually"]),
+        (
+            "Moderate",
+            [
+                "10% sample",
+                "weekly",
+                "Escalate exceptions",
+                "pre-action human approval",
+                "six months",
+            ],
+        ),
+        (
+            "High",
+            [
+                "all consequential actions",
+                "daily sample",
+                "budgeted time",
+                "quarterly audits",
+            ],
+        ),
+        (
+            "Critical",
+            [
+                "Do not deploy",
+                "reduce its autonomy",
+                "every action affecting people or money",
+                "before deployment",
+            ],
+        ),
+    ],
+)
+def test_human_review_plan_matches_each_risk_tier(tier, required_phrases):
+    plan = human_review_plan(make_profile(), tier)
+    combined = " ".join(plan).lower()
+
+    for phrase in required_phrases:
+        assert phrase.lower() in combined
+
+
+def test_low_tier_review_plan_requires_named_owner_when_missing():
+    plan = human_review_plan(make_profile(owner_name=None), "Low")
+    assert any("Assign a named accountable owner" in item for item in plan)
+
+
+def test_sensitive_data_review_is_added_to_tier_plan():
+    plan = human_review_plan(
+        make_profile(data_categories="sensitive_personal"),
+        "Moderate",
+    )
+    assert any("sensitive-data access and handling" in item for item in plan)
+
+
+def test_matrix_halfway_likelihood_rounds_up():
+    profile = make_profile(autonomy_level=0, oversight_mode=1)
+    position = matrix_position(profile)
+
+    assert position is not None
+    assert position["likelihood"] == 1

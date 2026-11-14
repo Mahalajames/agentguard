@@ -819,6 +819,10 @@ progress::-moz-progress-bar {
 <body>
 <main>
 <a class="brand" href="/" aria-label="AgentGuard home">AGENT<span>GUARD</span></a>
+<nav aria-label="Main navigation" style="display:flex;gap:18px;margin:12px 0 22px;">
+  <a href="/dashboard">Results Dashboard</a>
+  <a href="/account">My Account</a>
+</nav>
 <header>
   <h1>AgentGuard Guided Assessment</h1>
   <p>Assess an AI agent's risk and organizational readiness one step at a time.</p>
@@ -882,6 +886,15 @@ progress::-moz-progress-bar {
 <section id="resultSection" hidden>
   <h2>Assessment result</h2>
   <div id="resultContent" aria-live="polite"></div>
+  <section id="guided-save-panel" class="panel" hidden style="margin:20px 0;padding:20px;">
+    <h3>Keep your assessment</h3>
+    <p>Save these results to your account so you can return to them later.</p>
+    <button id="guided-save-button" type="button">Save to my account</button>
+    <p><a id="guided-signup-link" href="/signup">Create an account</a> or
+    <a id="guided-login-link" href="/login">sign in</a></p>
+    <p id="guided-save-message" role="status"></p>
+  </section>
+  <p><a id="guided-dashboard-link" href="/dashboard">Open Results Dashboard</a></p>
   <div class="actions">
     <button id="anotherButton" type="button">Add another agent</button>
   </div>
@@ -993,6 +1006,15 @@ let answers = {};
 
 function showOnly(section) {
   [setup, questionSection, reviewSection, resultSection].forEach(s => s.hidden = s !== section);
+
+  requestAnimationFrame(() => {
+    section.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
+      block: "start"
+    });
+  });
 }
 
 function agentDetails() {
@@ -1178,6 +1200,8 @@ document.getElementById("editButton").addEventListener("click", () => {
   renderQuestion();
 });
 
+let guidedCompletedToken = "";
+
 document.getElementById("submitButton").addEventListener("click", async () => {
   const error = document.getElementById("reviewError");
   const button = document.getElementById("submitButton");
@@ -1286,12 +1310,50 @@ document.getElementById("submitButton").addEventListener("click", async () => {
     reference.append(referenceLabel, token);
     summary.append(reference);
     container.append(summary);
+
+    guidedCompletedToken = result.token;
+    const claimQuery = "?claim=" + encodeURIComponent(guidedCompletedToken);
+    document.getElementById("guided-signup-link").href = "/signup" + claimQuery;
+    document.getElementById("guided-login-link").href = "/login" + claimQuery;
+    document.getElementById("guided-dashboard-link").href =
+      "/dashboard?token=" + encodeURIComponent(guidedCompletedToken);
+    document.getElementById("guided-save-panel").hidden = false;
+    document.getElementById("guided-save-message").textContent = "";
+    const saveButton = document.getElementById("guided-save-button");
+    saveButton.disabled = false;
+    saveButton.textContent = "Save to my account";
     showOnly(resultSection);
   } catch (err) {
     error.textContent = err.message;
   } finally {
     button.disabled = false;
     button.textContent = "Confirm and score agent";
+  }
+});
+
+document.getElementById("guided-save-button").addEventListener("click", async () => {
+  if (!guidedCompletedToken) return;
+  const button = document.getElementById("guided-save-button");
+  const message = document.getElementById("guided-save-message");
+  button.disabled = true;
+  button.textContent = "Saving...";
+  try {
+    const response = await fetch(
+      "/assessments/" + encodeURIComponent(guidedCompletedToken) + "/claim",
+      {method: "POST"}
+    );
+    const data = await response.json().catch(() => ({}));
+    if (response.status === 401) {
+      window.location.href = "/signup?claim=" + encodeURIComponent(guidedCompletedToken);
+      return;
+    }
+    if (!response.ok) throw new Error(data.detail || "Unable to save assessment.");
+    document.getElementById("guided-save-panel").hidden = true;
+    message.textContent = "Assessment saved to your account.";
+  } catch (err) {
+    message.textContent = err.message || "Unable to save assessment.";
+    button.disabled = false;
+    button.textContent = "Try again";
   }
 });
 

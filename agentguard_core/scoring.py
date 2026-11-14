@@ -165,15 +165,18 @@ def matrix_position(profile: AgentProfile) -> dict[str, int] | None:
     if any(value is None for value in values):
         return None
 
-    likelihood = round((profile.autonomy_level + profile.oversight_mode) / 2)
+    # Inputs are non-negative integers; adding 0.5 implements the
+    # documented round-half-up rule rather than Python's banker rounding.
+    likelihood = int((profile.autonomy_level + profile.oversight_mode) / 2 + 0.5)
 
-    severity = round(
+    severity = int(
         (
             profile.failure_severity
             + profile.affected_population
             + max(profile.financial_authority, data_level)
         )
         / 3
+        + 0.5
     )
 
     return {
@@ -509,29 +512,47 @@ def human_review_plan(
     profile: AgentProfile,
     tier: str | None,
 ) -> list[str]:
-    """Recommend human oversight based on risk and agent characteristics."""
-    plan = []
+    """Return the minimum human-review requirements for the final risk tier."""
+    plans = {
+        "Low": [
+            "Assign a named accountable owner."
+            if not profile.owner_name or not profile.owner_name.strip()
+            else "The named accountable owner must conduct the reviews.",
+            "Review a monthly sample of 5% of agent activity.",
+            "Reassess the agent annually.",
+        ],
+        "Moderate": [
+            "Review a 10% sample of agent activity weekly.",
+            "Escalate exceptions identified during review.",
+            "Require pre-action human approval for consequential actions.",
+            "Reassess the agent every six months.",
+        ],
+        "High": [
+            "Require pre-action human approval for all consequential actions.",
+            "Review a daily sample of routine agent actions.",
+            "Assign a designated reviewer with budgeted time for oversight.",
+            "Conduct quarterly audits and reassessments.",
+        ],
+        "Critical": [
+            "Do not deploy the agent as currently configured.",
+            (
+                "Redesign the agent before deployment and reduce its autonomy "
+                "or financial authority."
+            ),
+            (
+                "Require pre-action human approval for every action "
+                "affecting people or money."
+            ),
+            "Reassess the agent after changes and before deployment.",
+        ],
+    }
 
-    if tier in ("High", "Critical"):
-        plan.append("Require documented human approval before consequential actions.")
-        plan.append("Assign a named reviewer to regularly inspect agent activity.")
+    plan = list(plans.get(tier, []))
 
-    if tier == "Critical":
-        plan.append(
-            "Do not deploy until critical risks have been reviewed and "
-            "appropriate safeguards are verified."
-        )
-
-    if profile.oversight_mode is not None and profile.oversight_mode >= 3:
-        plan.append("Strengthen human oversight because current oversight is weak.")
-
-    if (
-        profile.data_categories is not None
-        and "sensitive_personal" in str(profile.data_categories)
-    ) or (
-        profile.data_categories is not None
-        and "special_category" in str(profile.data_categories)
+    if profile.data_categories is not None and (
+        "sensitive_personal" in str(profile.data_categories)
+        or "special_category" in str(profile.data_categories)
     ):
         plan.append("Require human review of sensitive-data access and handling.")
 
-    return list(dict.fromkeys(plan))
+    return plan

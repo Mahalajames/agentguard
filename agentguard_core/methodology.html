@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scoring Methodology | AgentGuard</title>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; background: #f5f8fc; color: #243449;
+  font-family: Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; line-height: 1.65; }
+header { background: #14243b; color: white; padding: 18px 24px; }
+nav { max-width: 960px; margin: auto; display: flex; justify-content: space-between; gap: 20px; }
+nav a { color: white; text-decoration: none; font-weight: 700; }
+main { width: min(100% - 32px, 900px); margin: 42px auto 64px; }
+h1,h2,h3 { color: #14243b; line-height: 1.25; }
+h1 { font-size: clamp(30px, 5vw, 42px); margin-bottom: 8px; }
+h2 { margin-top: 34px; padding-bottom: 8px; border-bottom: 1px solid #e2e8f0; }
+.intro,.section,.disclaimer { background: white; border: 1px solid #e2e8f0;
+  border-radius: 12px; padding: 24px; margin-top: 18px; }
+.intro { border-left: 5px solid #2563eb; }
+p { margin: 10px 0; }
+table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+th,td { padding: 11px 12px; border: 1px solid #dbe3ee; text-align: left; }
+th { background: #edf3fb; color: #14243b; }
+.callout { background: #edf3ff; border-radius: 8px; padding: 14px 16px; }
+.disclaimer { border-left: 5px solid #d97706; }
+footer { text-align: center; color: #64748b; padding: 24px; }
+a { color: #2455a7; }
+@media(max-width:600px) {
+  main { margin-top: 24px; }
+  .intro,.section,.disclaimer { padding: 18px; }
+  table { font-size: 14px; }
+  th,td { padding: 8px; }
+}
+</style>
+</head>
+<body>
+<header><nav><a href="/">AGENTGUARD</a><a href="/">Home</a></nav></header>
+<main>
+  <h1>Scoring methodology</h1>
+  <p>How AgentGuard evaluates AI agent risk, organizational readiness, and recommended safeguards.</p>
+
+  <section class="intro">
+    <strong>Purpose</strong>
+    <p>AgentGuard evaluates AI agents across two areas: risk and readiness. Risk estimates the potential harm an agent could cause. Readiness describes whether the organization has relevant controls in place. Results are intended to help teams identify risks, prioritize safeguards, and decide where human oversight is needed.</p>
+    <p>This page describes the scoring approach documented in the AgentGuard project. It does not replace review of the underlying assessment, scoring rules, or findings.</p>
+  </section>
+
+  <section class="section">
+    <h2>1. Risk score</h2>
+    <p>The risk score combines six dimensions. Each dimension contributes according to its stated weight.</p>
+    <table>
+      <thead><tr><th>Dimension</th><th>Weight</th><th>What it measures</th></tr></thead>
+      <tbody>
+        <tr><td>Autonomy level</td><td>15%</td><td>How independently the agent can act.</td></tr>
+        <tr><td>Data sensitivity</td><td>15%</td><td>The sensitivity of information the agent can access.</td></tr>
+        <tr><td>Financial authority</td><td>15%</td><td>The agent's ability to make or affect financial decisions.</td></tr>
+        <tr><td>Human oversight</td><td>20%</td><td>How much effective human oversight is available. Weaker oversight increases risk.</td></tr>
+        <tr><td>Affected population</td><td>15%</td><td>The number or vulnerability of people potentially affected.</td></tr>
+        <tr><td>Failure consequences</td><td>20%</td><td>The severity of harm if the agent fails.</td></tr>
+      </tbody>
+    </table>
+    <p>Higher dimension values represent higher risk. If a required risk dimension is unknown, AgentGuard returns an unknown risk score rather than treating missing information as zero risk.</p>
+  </section>
+
+  <section class="section">
+    <h2>2. Risk tiers and red-line rules</h2>
+    <table>
+      <thead><tr><th>Risk score</th><th>Tier</th></tr></thead>
+      <tbody>
+        <tr><td>0–24</td><td>Low</td></tr>
+        <tr><td>25–49</td><td>Moderate</td></tr>
+        <tr><td>50–74</td><td>High</td></tr>
+        <tr><td>75–100</td><td>Critical</td></tr>
+      </tbody>
+    </table>
+    <p>Red-line rules can raise the final risk tier regardless of the ordinary weighted score. They cover especially sensitive data and combinations of financial authority, weak oversight, affected populations, and severe failure consequences. A low numeric score therefore does not guarantee a low final tier.</p>
+  </section>
+
+  <section class="section">
+    <h2>3. Risk matrix</h2>
+    <p>The matrix provides a complementary view of risk using likelihood and severity. Likelihood is based on autonomy and human oversight; weaker oversight increases the likelihood rating. Severity considers failure consequences, affected populations, and the greater of financial authority or sensitive-data access.</p>
+    <p>Inputs are converted to matrix indices from 0 to 4 using the project's rounding rules. The matrix complements, but does not replace, the weighted risk score or red-line rules.</p>
+  </section>
+
+  <section class="section">
+    <h2>4. Readiness score</h2>
+    <p>Readiness evaluates ten organizational controls. Each is scored from 0 to 2:</p>
+    <ol>
+      <li>Named owner</li><li>Data inventory</li><li>Scope limits</li><li>Logging</li>
+      <li>Kill switch</li><li>Review process</li><li>Testing</li><li>Incident plan</li>
+      <li>Vendor terms</li><li>Transparency</li>
+    </ol>
+    <ul>
+      <li><strong>0:</strong> The control is absent.</li>
+      <li><strong>1:</strong> The control is partially implemented.</li>
+      <li><strong>2:</strong> The control is fully implemented.</li>
+    </ul>
+    <p>The readiness score is expressed as a percentage. Unknown controls are not treated as fully implemented; teams should investigate unknown values rather than assuming a control exists.</p>
+  </section>
+
+  <section class="section">
+    <h2>5. Required safeguards</h2>
+    <p>AgentGuard compares each agent profile with the safeguard library in <code>data/safeguards.csv</code>. Safeguards are selected when their trigger conditions match the profile. The documented safe condition parser supports comparison operators and combined conditions including <code>&gt;=</code>, <code>==</code>, <code>!=</code>, <code>contains</code>, and <code>AND</code>. It evaluates conditions without executing arbitrary Python expressions.</p>
+    <p>Each safeguard includes an identifier, trigger condition, description, framework mapping, priority, and effort information. Unknown values are handled according to the trigger operator and parser rules.</p>
+  </section>
+
+  <section class="section">
+    <h2>6. Human-review plan</h2>
+    <p>AgentGuard generates a human-review plan based on the assessed agent profile and applicable risk conditions. It is intended to help teams decide where people should remain involved, including review before consequential actions. The plan is a practical recommendation, not a substitute for organizational approval or professional judgment.</p>
+  </section>
+
+  <section class="section">
+    <h2>7. Assessment outputs</h2>
+    <p>Results can include the risk score and final tier, risk matrix position, triggered red-line rules, readiness score, required safeguards, findings with supporting evidence and framework references, and human-review recommendations.</p>
+  </section>
+
+  <section class="section">
+    <h2>8. Limitations</h2>
+    <p>Results depend on the accuracy and completeness of the information provided. Missing, incorrect, or outdated inputs can affect an assessment. Scores are decision-support indicators; they do not prove that an AI agent is safe or compliant. Organizations should validate inputs, review findings, implement appropriate safeguards, and reassess when an agent or its operating environment changes.</p>
+  </section>
+
+  <section class="disclaimer">
+    <h2>Important disclaimer</h2>
+    <p>AgentGuard is a governance and decision-support aid. It is not legal advice, a certification, or a guarantee of safety, compliance, or readiness. It does not replace qualified human review or an organization's responsibility for deployment decisions.</p>
+  </section>
+</main>
+<footer>AGENTGUARD · <a href="/">Return to homepage</a></footer>
+</body>
+</html>

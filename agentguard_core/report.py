@@ -57,6 +57,14 @@ def render_governance_report(
     )
 
 
+def render_governance_report_pdf_bytes(html: str) -> bytes:
+    """Render a governance report to PDF bytes without writing a file."""
+    return HTML(
+        string=html,
+        base_url=str(PROJECT_ROOT),
+    ).write_pdf()
+
+
 def save_governance_report_pdf(
     html: str,
     output_path: str | Path,

@@ -1,8 +1,10 @@
 """FastAPI endpoints for AgentGuard."""
 
 import asyncio
-import io
+import hashlib
 import logging
+import os
+import re
 import secrets
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
@@ -10,9 +12,8 @@ from pathlib import Path
 
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.responses import Response
-from pydantic import BaseModel, ConfigDict
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
+from pwdlib import PasswordHash
+from pydantic import BaseModel, ConfigDict, Field
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
@@ -24,9 +25,21 @@ from agentguard_core.db_models import (
     AgentResultRecord,
     Assessment,
     FindingRecord,
+    LoginSession,
+    Organization,
+    User,
 )
 from agentguard_core.ingestion import IngestionError, ingest_inventory
-from agentguard_core.models import AgentProfile, ReadinessProfile
+from agentguard_core.models import (
+    AgentProfile,
+    AgentResult,
+    PortfolioResult,
+    ReadinessProfile,
+)
+from agentguard_core.report import (
+    render_governance_report,
+    render_governance_report_pdf_bytes,
+)
 from agentguard_core.scoring import (
     FAILURE_SCENARIOS,
     RISK_WEIGHTS,
@@ -73,12 +86,239 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
+SESSION_COOKIE_NAME = "agentguard_session"
+SESSION_DURATION = timedelta(days=30)
+PASSWORD_HASHER = PasswordHash.recommended()
+
+
+class SignupRequest(BaseModel):
+    email: str = Field(min_length=5, max_length=320)
+    password: str = Field(min_length=12, max_length=128)
+
+
+class LoginRequest(BaseModel):
+    email: str = Field(min_length=5, max_length=320)
+    password: str = Field(min_length=1, max_length=128)
+
+
+def normalize_email(email: str) -> str:
+    return email.strip().lower()
+
+
+def valid_email(email: str) -> bool:
+    return bool(re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email))
+
+
+def hash_session_token(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def get_current_user(session, request: Request) -> User | None:
+    token = request.cookies.get(SESSION_COOKIE_NAME)
+    if not token:
+        return None
+
+    login_session = (
+        session.query(LoginSession)
+        .filter(
+            LoginSession.token_hash == hash_session_token(token),
+            LoginSession.expires_at > datetime.now(timezone.utc),
+        )
+        .first()
+    )
+
+    if login_session is None:
+        return None
+
+    user = session.query(User).filter(User.id == login_session.user_id).first()
+    if user is None or not user.is_active:
+        return None
+
+    return user
+
+
+def create_login_session(session, user: User, response: Response) -> None:
+    token = secrets.token_urlsafe(32)
+    now = datetime.now(timezone.utc)
+
+    session.add(
+        LoginSession(
+            user_id=user.id,
+            token_hash=hash_session_token(token),
+            created_at=now,
+            expires_at=now + SESSION_DURATION,
+        )
+    )
+
+    response.set_cookie(
+        key=SESSION_COOKIE_NAME,
+        value=token,
+        max_age=int(SESSION_DURATION.total_seconds()),
+        httponly=True,
+        secure=os.getenv("COOKIE_SECURE", "false").lower() == "true",
+        samesite="lax",
+        path="/",
+    )
+
+
+def ensure_assessment_access(session, assessment: Assessment, request: Request) -> None:
+    """Restrict account-owned assessments to their owner."""
+    if getattr(assessment, "user_id", None) is None:
+        return
+
+    user = get_current_user(session, request)
+    if user is None or user.id != assessment.user_id:
+        raise HTTPException(status_code=404, detail="Assessment not found.")
+
+
+@app.post("/auth/signup", status_code=201)
+@limiter.limit("5/minute")
+def signup(payload: SignupRequest, request: Request, response: Response) -> dict:
+    """Create an account and sign the new user in."""
+    email = normalize_email(payload.email)
+
+    if not valid_email(email):
+        raise HTTPException(status_code=422, detail="Enter a valid email address.")
+
+    with SessionLocal.begin() as session:
+        existing = session.query(User).filter(User.email == email).first()
+        if existing is not None:
+            raise HTTPException(
+                status_code=409, detail="An account with that email already exists."
+            )
+
+        user = User(
+            email=email,
+            password_hash=PASSWORD_HASHER.hash(payload.password),
+            is_active=True,
+        )
+        session.add(user)
+        session.flush()
+        create_login_session(session, user, response)
+
+        return {"id": user.id, "email": user.email}
+
+
+@app.post("/auth/login")
+@limiter.limit("5/minute")
+def login(payload: LoginRequest, request: Request, response: Response) -> dict:
+    """Authenticate an existing user and create a browser session."""
+    email = normalize_email(payload.email)
+
+    with SessionLocal.begin() as session:
+        user = session.query(User).filter(User.email == email).first()
+
+        if (
+            user is None
+            or not user.is_active
+            or not PASSWORD_HASHER.verify(payload.password, user.password_hash)
+        ):
+            raise HTTPException(status_code=401, detail="Invalid email or password.")
+
+        create_login_session(session, user, response)
+        return {"id": user.id, "email": user.email}
+
+
+@app.post("/auth/logout")
+def logout(request: Request, response: Response) -> dict:
+    """Revoke the current login session."""
+    token = request.cookies.get(SESSION_COOKIE_NAME)
+
+    if token:
+        with SessionLocal.begin() as session:
+            session.query(LoginSession).filter(
+                LoginSession.token_hash == hash_session_token(token)
+            ).delete(synchronize_session=False)
+
+    response.delete_cookie(
+        key=SESSION_COOKIE_NAME,
+        path="/",
+        httponly=True,
+        secure=os.getenv("COOKIE_SECURE", "false").lower() == "true",
+        samesite="lax",
+    )
+    return {"message": "Signed out."}
+
+
+@app.get("/auth/me")
+def get_account(request: Request) -> dict:
+    """Return the currently authenticated account."""
+    with SessionLocal() as session:
+        user = get_current_user(session, request)
+        if user is None:
+            raise HTTPException(status_code=401, detail="Please sign in.")
+        return {"id": user.id, "email": user.email}
+
+
+@app.get("/account/assessments")
+def get_account_assessments(request: Request) -> dict:
+    """List assessments belonging to the signed-in account."""
+    with SessionLocal() as session:
+        user = get_current_user(session, request)
+        if user is None:
+            raise HTTPException(status_code=401, detail="Please sign in.")
+
+        assessments = (
+            session.query(Assessment)
+            .filter(Assessment.user_id == user.id)
+            .order_by(Assessment.created_at.desc())
+            .all()
+        )
+
+        return {
+            "assessments": [
+                {
+                    "token": item.token,
+                    "status": item.status,
+                    "created_at": item.created_at.isoformat(),
+                    "expires_at": item.expires_at.isoformat()
+                    if item.expires_at
+                    else None,
+                }
+                for item in assessments
+            ]
+        }
+
+
 @app.get("/")
 def homepage() -> Response:
     """Display the AgentGuard homepage."""
     html_path = Path(__file__).with_name("homepage.html")
     html = html_path.read_text(encoding="utf-8")
     return Response(content=html, media_type="text/html")
+
+
+@app.get("/methodology")
+def methodology_page() -> Response:
+    """Display the public AgentGuard scoring methodology."""
+    html_path = Path(__file__).with_name("methodology.html")
+    return Response(
+        content=html_path.read_text(encoding="utf-8"), media_type="text/html"
+    )
+
+
+@app.get("/login")
+def login_page() -> Response:
+    html_path = Path(__file__).with_name("login.html")
+    return Response(
+        content=html_path.read_text(encoding="utf-8"), media_type="text/html"
+    )
+
+
+@app.get("/signup")
+def signup_page() -> Response:
+    html_path = Path(__file__).with_name("signup.html")
+    return Response(
+        content=html_path.read_text(encoding="utf-8"), media_type="text/html"
+    )
+
+
+@app.get("/account")
+def account_page() -> Response:
+    html_path = Path(__file__).with_name("account.html")
+    return Response(
+        content=html_path.read_text(encoding="utf-8"), media_type="text/html"
+    )
 
 
 @app.get("/guided-assessment")
@@ -119,7 +359,10 @@ def cleanup_expired_assessments() -> int:
         expired_ids = [
             assessment_id
             for (assessment_id,) in session.query(Assessment.id)
-            .filter(Assessment.expires_at <= now)
+            .filter(
+                Assessment.user_id.is_(None),
+                Assessment.expires_at <= now,
+            )
             .all()
         ]
 
@@ -183,10 +426,10 @@ def get_active_assessment(session, token: str) -> Assessment:
         )
 
     expires_at = assessment.expires_at
-    if expires_at.tzinfo is None:
+    if expires_at is not None and expires_at.tzinfo is None:
         expires_at = expires_at.replace(tzinfo=timezone.utc)
 
-    if expires_at <= datetime.now(timezone.utc):
+    if expires_at is not None and expires_at <= datetime.now(timezone.utc):
         raise HTTPException(
             status_code=410,
             detail="This assessment has expired.",
@@ -286,8 +529,12 @@ async def upload_assessment(request: Request, file: UploadFile = File(...)) -> d
 
     try:
         with SessionLocal.begin() as session:
+            user = get_current_user(session, request)
+            expires_at = None if user else now + timedelta(hours=24)
+
             assessment = Assessment(
                 token=token,
+                user_id=user.id if user else None,
                 status="completed",
                 created_at=now,
                 expires_at=expires_at,
@@ -337,7 +584,7 @@ async def upload_assessment(request: Request, file: UploadFile = File(...)) -> d
         "token": token,
         "status": "completed",
         "created_at": now.isoformat(),
-        "expires_at": expires_at.isoformat(),
+        "expires_at": expires_at.isoformat() if expires_at else None,
         "total_rows": inventory["total_rows"],
         "valid_agents": inventory["valid_agents"],
         "scored_agents": len(scored_agents),
@@ -353,10 +600,11 @@ async def upload_assessment(request: Request, file: UploadFile = File(...)) -> d
 
 
 @app.get("/assessments/{token}")
-def get_assessment(token: str) -> dict:
+def get_assessment(token: str, request: Request) -> dict:
     """Retrieve a saved assessment and its results by token."""
     with SessionLocal() as session:
         assessment = get_active_assessment(session, token)
+        ensure_assessment_access(session, assessment, request)
 
         agents = session.query(Agent).filter(Agent.assessment_id == assessment.id).all()
 
@@ -383,16 +631,19 @@ def get_assessment(token: str) -> dict:
             "token": assessment.token,
             "status": assessment.status,
             "created_at": assessment.created_at.isoformat(),
-            "expires_at": assessment.expires_at.isoformat(),
+            "expires_at": assessment.expires_at.isoformat()
+            if assessment.expires_at
+            else None,
             "agents": agent_results,
         }
 
 
 @app.get("/assessments/{token}/dashboard-data")
-def get_dashboard_data(token: str) -> dict:
+def get_dashboard_data(token: str, request: Request) -> dict:
     """Return assessment results enriched for the results dashboard."""
     with SessionLocal() as session:
         assessment = get_active_assessment(session, token)
+        ensure_assessment_access(session, assessment, request)
         agents = session.query(Agent).filter(Agent.assessment_id == assessment.id).all()
         output = []
 
@@ -480,17 +731,71 @@ def get_dashboard_data(token: str) -> dict:
                 }
             )
 
+        current_user = get_current_user(session, request)
+        is_saved_to_account = (
+            current_user is not None
+            and assessment.user_id is not None
+            and current_user.id == assessment.user_id
+        )
+
         return {
             "token": assessment.token,
             "status": assessment.status,
             "created_at": assessment.created_at.isoformat(),
-            "expires_at": assessment.expires_at.isoformat(),
+            "expires_at": assessment.expires_at.isoformat()
+            if assessment.expires_at
+            else None,
+            "is_saved_to_account": is_saved_to_account,
             "agents": output,
         }
 
 
+@app.post("/assessments/{token}/claim")
+def claim_assessment(token: str, request: Request) -> dict:
+    """Save a guest assessment permanently to the signed-in account."""
+    with SessionLocal.begin() as session:
+        user = get_current_user(session, request)
+        if user is None:
+            raise HTTPException(
+                status_code=401, detail="Please sign in to save this assessment."
+            )
+
+        # Lock the row so two accounts cannot claim it concurrently.
+        assessment = (
+            session.query(Assessment)
+            .filter(Assessment.token == token)
+            .with_for_update()
+            .first()
+        )
+
+        if assessment is None:
+            raise HTTPException(status_code=404, detail="Assessment not found.")
+
+        # Reuse the normal missing/expiration checks before claiming.
+        get_active_assessment(session, token)
+
+        if assessment.user_id is not None:
+            if assessment.user_id == user.id:
+                return {
+                    "saved": True,
+                    "already_saved": True,
+                    "token": assessment.token,
+                }
+            raise HTTPException(status_code=404, detail="Assessment not found.")
+
+        assessment.user_id = user.id
+        assessment.expires_at = None
+        session.flush()
+
+        return {
+            "saved": True,
+            "already_saved": False,
+            "token": assessment.token,
+        }
+
+
 @app.post("/assessments/guided")
-def guided_assessment(request: GuidedAssessmentRequest) -> dict:
+def guided_assessment(request: GuidedAssessmentRequest, http_request: Request) -> dict:
     """Score and save one agent submitted through the guided workflow."""
     profile = request.profile
     result = score_agent(profile, request.readiness)
@@ -501,8 +806,12 @@ def guided_assessment(request: GuidedAssessmentRequest) -> dict:
 
     try:
         with SessionLocal.begin() as session:
+            user = get_current_user(session, http_request)
+            expires_at = None if user else now + timedelta(hours=24)
+
             assessment = Assessment(
                 token=token,
+                user_id=user.id if user else None,
                 status="completed",
                 created_at=now,
                 expires_at=expires_at,
@@ -549,7 +858,7 @@ def guided_assessment(request: GuidedAssessmentRequest) -> dict:
         "token": token,
         "status": "completed",
         "created_at": now.isoformat(),
-        "expires_at": expires_at.isoformat(),
+        "expires_at": expires_at.isoformat() if expires_at else None,
         "scored_agents": 1,
         "results": [result_data],
     }
@@ -558,31 +867,14 @@ def guided_assessment(request: GuidedAssessmentRequest) -> dict:
 @app.get("/assessments/{token}/report.pdf")
 @limiter.limit("10/minute")
 def download_assessment_report(request: Request, token: str) -> Response:
-    """Generate and download a PDF assessment report."""
-    buffer = io.BytesIO()
-    pdf = canvas.Canvas(buffer, pagesize=letter)
-    _, height = letter
-
+    """Generate the complete governance report from persisted assessment results."""
     with SessionLocal() as session:
         assessment = get_active_assessment(session, token)
+        ensure_assessment_access(session, assessment, request)
 
         agents = session.query(Agent).filter(Agent.assessment_id == assessment.id).all()
 
-        y = height - 50
-        pdf.setFont("Helvetica-Bold", 18)
-        pdf.drawString(50, y, "AgentGuard Assessment Report")
-        y -= 30
-
-        pdf.setFont("Helvetica", 10)
-        pdf.drawString(50, y, f"Assessment token: {token}")
-        y -= 18
-        pdf.drawString(
-            50,
-            y,
-            f"Created: {assessment.created_at.isoformat()}",
-        )
-        y -= 30
-
+        results = []
         for agent in agents:
             result_record = (
                 session.query(AgentResultRecord)
@@ -590,76 +882,50 @@ def download_assessment_report(request: Request, token: str) -> Response:
                 .first()
             )
 
-            if y < 100:
-                pdf.showPage()
-                y = height - 50
-
-            pdf.setFont("Helvetica-Bold", 13)
-            pdf.drawString(50, y, f"Agent: {agent.agent_name[:70]}")
-            y -= 20
-
-            if result_record is None:
-                pdf.setFont("Helvetica", 10)
-                pdf.drawString(60, y, "No scoring result is available.")
-                y -= 18
+            if result_record is None or not result_record.result_data:
+                results.append(AgentResult(agent_name=agent.agent_name))
                 continue
 
-            pdf.setFont("Helvetica", 10)
-            pdf.drawString(
-                60,
-                y,
-                f"Risk score: {result_record.risk_score} | Tier: {result_record.tier}",
+            result_data = dict(result_record.result_data)
+            result_data.setdefault("agent_name", agent.agent_name)
+            results.append(AgentResult.model_validate(result_data))
+
+        tiers = ("Low", "Moderate", "High", "Critical")
+        summary = {
+            tier: sum(1 for result in results if result.tier == tier) for tier in tiers
+        }
+
+        portfolio = PortfolioResult(
+            results=results,
+            total_agents=len(results),
+            summary=summary,
+        )
+
+        organization_name = "Organization not specified"
+        organization_id = getattr(assessment, "organization_id", None)
+        if organization_id:
+            organization = (
+                session.query(Organization)
+                .filter(Organization.id == organization_id)
+                .first()
             )
-            y -= 18
+            if organization is not None:
+                organization_name = organization.name
 
-            if result_record.readiness_score is not None:
-                pdf.drawString(
-                    60,
-                    y,
-                    f"Readiness score: {result_record.readiness_score}",
-                )
-                y -= 18
+        assessment_id = assessment.id
+        assessment_date = assessment.created_at.isoformat()
 
-            result_data = result_record.result_data or {}
+        report_html = render_governance_report(
+            portfolio.model_dump_json(),
+            organization_name=organization_name,
+            assessment_id=assessment_id,
+            assessment_date=assessment_date,
+        )
 
-            for heading, key in (
-                ("Required safeguards", "required_safeguards"),
-                ("Red lines", "red_lines"),
-            ):
-                items = result_data.get(key, [])
-
-                if y < 75:
-                    pdf.showPage()
-                    y = height - 50
-
-                pdf.setFont("Helvetica-Bold", 10)
-                pdf.drawString(60, y, f"{heading}:")
-                y -= 15
-
-                pdf.setFont("Helvetica", 9)
-
-                if not items:
-                    pdf.drawString(70, y, "None recorded")
-                    y -= 13
-                    continue
-
-                for item in items:
-                    if y < 60:
-                        pdf.showPage()
-                        y = height - 50
-                        pdf.setFont("Helvetica", 9)
-
-                    line = f"- {str(item)}"
-                    pdf.drawString(70, y, line[:110])
-                    y -= 13
-
-            y -= 15
-
-    pdf.save()
-    buffer.seek(0)
+    pdf_bytes = render_governance_report_pdf_bytes(report_html)
 
     return Response(
-        content=buffer.getvalue(),
+        content=pdf_bytes,
         media_type="application/pdf",
         headers={
             "Content-Disposition": (

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Create Account | AgentGuard</title>
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0; min-height: 100vh; font-family: Arial, sans-serif;
+  background: #f3f6fa; color: #17263d;
+}
+.topbar {
+  background: #14243b; color: white; padding: 20px 7%;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.brand { color: white; text-decoration: none; font-weight: 800; letter-spacing: 1px; }
+.brand span { color: #76a7ff; }
+.topbar a:not(.brand) { color: white; text-decoration: none; margin-left: 20px; }
+main { width: min(100% - 32px, 760px); margin: 64px auto; }
+.card {
+  background: white; border-radius: 14px; padding: 36px;
+  box-shadow: 0 8px 30px rgba(20,36,59,.08);
+}
+h1 { margin: 0 0 10px; font-size: 30px; }
+.subtitle { color: #65748a; line-height: 1.6; margin: 0 0 28px; }
+label { display: block; font-weight: 700; margin: 18px 0 8px; }
+input {
+  width: 100%; padding: 13px 14px; border: 1px solid #ccd5e1;
+  border-radius: 7px; font-size: 16px;
+}
+button, .primary {
+  display: inline-block; border: 0; border-radius: 7px;
+  background: #3269c8; color: white; padding: 13px 20px;
+  font-size: 15px; font-weight: 700; cursor: pointer;
+  text-decoration: none;
+}
+button:hover, .primary:hover { background: #2455a7; }
+form button { width: 100%; margin-top: 24px; }
+.message { margin-top: 16px; color: #b42318; line-height: 1.5; }
+.switch { margin-top: 22px; color: #65748a; }
+.switch a, .assessment a { color: #3269c8; font-weight: 700; }
+.hint { color: #65748a; font-size: 13px; margin-top: 7px; }
+@media (max-width: 600px) {
+  .topbar { padding: 18px; }
+  .topbar a:not(.brand) { margin-left: 10px; font-size: 13px; }
+  main { margin: 32px auto; }
+  .card { padding: 24px; }
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="/">AGENT<span>GUARD</span></a>
+  <div><a href="/">Home</a><a href="/login">Sign in</a></div>
+</header>
+<main>
+  <section class="card">
+    <h1>Create your account</h1>
+    <p class="subtitle">Save your assessments and return to your reports whenever you need them.</p>
+    <form id="signup-form">
+      <label for="email">Email address</label>
+      <input id="email" type="email" autocomplete="email" required>
+      <label for="password">Password</label>
+      <input id="password" type="password" autocomplete="new-password"
+             minlength="12" maxlength="128" required>
+      <p class="hint">Use at least 12 characters.</p>
+      <label for="confirm-password">Confirm password</label>
+      <input id="confirm-password" type="password" autocomplete="new-password"
+             minlength="12" maxlength="128" required>
+      <button type="submit" id="submit-button">Create account</button>
+      <p class="message" id="message" role="alert"></p>
+    </form>
+    <p class="switch">Already have an account? <a href="/login">Sign in</a></p>
+  </section>
+</main>
+<script>
+const form = document.getElementById("signup-form");
+const message = document.getElementById("message");
+const button = document.getElementById("submit-button");
+const claimToken = new URLSearchParams(window.location.search).get("claim");
+
+if (claimToken) {
+  document.querySelectorAll('a[href="/login"], a[href="/signup"]').forEach((link) => {
+    const destination = link.getAttribute("href");
+    link.href = destination + "?claim=" + encodeURIComponent(claimToken);
+  });
+}
+
+form.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  message.textContent = "";
+
+  const password = document.getElementById("password").value;
+  const confirmation = document.getElementById("confirm-password").value;
+
+  if (password !== confirmation) {
+    message.textContent = "Your passwords do not match.";
+    return;
+  }
+  if (password.length < 12) {
+    message.textContent = "Your password must be at least 12 characters.";
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = "Creating account...";
+
+  try {
+    const response = await fetch("/auth/signup", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: document.getElementById("email").value,
+        password
+      })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.detail || "Unable to create your account.");
+    if (claimToken) {
+      const claimResponse = await fetch(
+        "/assessments/" + encodeURIComponent(claimToken) + "/claim",
+        {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Accept": "application/json" }
+        }
+      );
+      const claimData = await claimResponse.json().catch(() => ({}));
+      if (!claimResponse.ok) {
+        throw new Error(claimData.detail || "Your account was created, but this assessment could not be saved.");
+      }
+      window.location.href = "/dashboard?token=" + encodeURIComponent(claimToken);
+    } else {
+      window.location.href = "/account";
+    }
+  } catch (error) {
+    message.textContent = error.message;
+    button.disabled = false;
+    button.textContent = "Create account";
+  }
+});
+</script>
+</body>
+</html>

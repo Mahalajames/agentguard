@@ -499,6 +499,7 @@
       <nav class="nav" aria-label="Main navigation">
         <a href="/guided-assessment">Guided assessment</a>
         <a href="/upload">Upload inventory</a>
+        <a href="/methodology">Methodology</a>
       </nav>
     </header>
 
@@ -518,6 +519,18 @@
       <p id="status" class="status" role="status" aria-live="polite">Enter the assessment reference from your completed assessment.</p>
 
       <div id="dashboard-content" hidden>
+        <section id="save-assessment-panel" class="panel"
+                 style="margin: 0 0 24px; display: none;">
+          <h2>Keep your assessment</h2>
+          <p class="muted">Save this assessment to your account so you can return to these results and download its report later.</p>
+          <button id="save-assessment-button" class="primary" type="button">Save to my account</button>
+          <span style="margin-left: 12px;">
+            <a id="save-signup-link" href="/signup">Create an account</a>
+            <span class="muted">or</span>
+            <a id="save-login-link" href="/login">sign in</a>
+          </span>
+          <p id="save-assessment-message" class="muted" role="status"></p>
+        </section>
         <section aria-labelledby="portfolio-title">
           <div class="section-heading">
             <div><div class="eyebrow">Portfolio summary</div><h2 id="portfolio-title">Your agent portfolio</h2></div>
@@ -586,7 +599,12 @@
         </section>
       </div>
     </main>
-    <footer>AGENTGUARD / Decision support for responsible AI deployment. Results support human review and do not replace organizational judgment.</footer>
+    <footer>
+      AGENTGUARD / Decision support for responsible AI deployment.
+      Results depend on the information provided and do not guarantee safety, compliance, or readiness.
+      AgentGuard is not legal advice or a certification and does not replace qualified human review.
+      <a href="/methodology">View scoring methodology</a>.
+    </footer>
   </div>
 
   <script>
@@ -595,6 +613,10 @@
     const tokenInput = document.getElementById("assessment-token");
     const statusEl = document.getElementById("status");
     const content = document.getElementById("dashboard-content");
+    const savePanel = document.getElementById("save-assessment-panel");
+    const saveButton = document.getElementById("save-assessment-button");
+    const saveMessage = document.getElementById("save-assessment-message");
+    let loadedAssessmentToken = "";
     const tierNames = ["Low", "Moderate", "High", "Critical"];
     let currentAgents = [];
     let allSafeguards = [];
@@ -903,6 +925,17 @@
         renderAgentCards(currentAgents);
         renderReviewPlan(currentAgents);
         renderSafeguards(currentAgents);
+        loadedAssessmentToken = data.token || token.trim();
+
+        const claimQuery = "?claim=" + encodeURIComponent(loadedAssessmentToken);
+        document.getElementById("save-signup-link").href = "/signup" + claimQuery;
+        document.getElementById("save-login-link").href = "/login" + claimQuery;
+
+        savePanel.style.display = data.is_saved_to_account ? "none" : "block";
+        saveMessage.textContent = "";
+        saveButton.disabled = false;
+        saveButton.textContent = "Save to my account";
+
         content.hidden = false;
         setStatus("Loaded " + currentAgents.length + " agent assessment(s).", "success");
       } catch (error) {
@@ -919,6 +952,46 @@
       loadAssessment(token);
     });
     document.getElementById("priority-filter").addEventListener("change", updateSafeguardList);
+
+    saveButton.addEventListener("click", async () => {
+      if (!loadedAssessmentToken) return;
+
+      saveButton.disabled = true;
+      saveButton.textContent = "Saving...";
+      saveMessage.textContent = "";
+
+      try {
+        const response = await fetch(
+          "/assessments/" + encodeURIComponent(loadedAssessmentToken) + "/claim",
+          {
+            method: "POST",
+            credentials: "same-origin",
+            headers: { "Accept": "application/json" }
+          }
+        );
+        const data = await response.json().catch(() => ({}));
+
+        if (response.status === 401) {
+          window.location.href = "/signup?claim=" + encodeURIComponent(loadedAssessmentToken);
+          return;
+        }
+        if (!response.ok) {
+          throw new Error(data.detail || "Unable to save this assessment.");
+        }
+
+        savePanel.style.display = "none";
+        setStatus(
+          data.already_saved
+            ? "This assessment is already saved to your account."
+            : "Assessment saved to your account. It will remain available in your assessment history.",
+          "success"
+        );
+      } catch (error) {
+        saveMessage.textContent = error.message || "Unable to save this assessment.";
+        saveButton.disabled = false;
+        saveButton.textContent = "Try again";
+      }
+    });
 
     const params = new URLSearchParams(window.location.search);
     const initialToken = params.get("token");
