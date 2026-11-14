@@ -146,6 +146,7 @@
     <a class="brand" href="/" aria-label="AgentGuard home">AGENT<span>GUARD</span></a>
     <div class="tagline">SAFER AGENTS. STRONGER<br>GOVERNANCE.</div>
     <nav aria-label="Main navigation">
+      <a href="/workspace">Workspace</a>
       <a href="/guided-assessment">Guided Assessment</a>
       <a href="/upload" class="active" aria-current="page">Upload Inventory</a>
       <a href="#results">Upload Results</a>
@@ -165,6 +166,7 @@
       <div class="eyebrow">Inventory management · 01</div>
       <h1>Bring your agents into focus.</h1>
       <p>Validate your inventory, identify data issues, and assess multiple agents using one structured file.</p>
+      <p class="muted">No account required. Upload and assess your inventory as a guest. Guest results are available for 24 hours; create an account afterward to keep them.</p>
     </header>
 
     <section class="panel">
@@ -406,5 +408,21 @@
   });
 })();
 </script>
+
+<script>
+(async function routeHomeForSignedInUsers() {
+  try {
+    const response = await fetch("/auth/me", { credentials: "same-origin" });
+    if (!response.ok) return;
+
+    document.querySelectorAll('a[href="/"]').forEach(link => {
+      link.href = "/workspace";
+    });
+  } catch (error) {
+    console.error("Could not determine account navigation.", error);
+  }
+})();
+</script>
+
 </body>
 </html>

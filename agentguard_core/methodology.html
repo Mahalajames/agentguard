@@ -126,5 +126,21 @@ a { color: #2455a7; }
   </section>
 </main>
 <footer>AGENTGUARD · <a href="/">Return to homepage</a></footer>
+
+<script>
+(async function routeHomeForSignedInUsers() {
+  try {
+    const response = await fetch("/auth/me", { credentials: "same-origin" });
+    if (!response.ok) return;
+
+    document.querySelectorAll('a[href="/"]').forEach(link => {
+      link.href = "/workspace";
+    });
+  } catch (error) {
+    console.error("Could not determine account navigation.", error);
+  }
+})();
+</script>
+
 </body>
 </html>

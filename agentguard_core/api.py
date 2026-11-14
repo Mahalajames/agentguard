@@ -88,17 +88,20 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 SESSION_COOKIE_NAME = "agentguard_session"
 SESSION_DURATION = timedelta(days=30)
+SESSION_ONLY_DURATION = timedelta(hours=12)
 PASSWORD_HASHER = PasswordHash.recommended()
 
 
 class SignupRequest(BaseModel):
     email: str = Field(min_length=5, max_length=320)
     password: str = Field(min_length=12, max_length=128)
+    remember_me: bool = False
 
 
 class LoginRequest(BaseModel):
     email: str = Field(min_length=5, max_length=320)
     password: str = Field(min_length=1, max_length=128)
+    remember_me: bool = False
 
 
 def normalize_email(email: str) -> str:
@@ -137,28 +140,34 @@ def get_current_user(session, request: Request) -> User | None:
     return user
 
 
-def create_login_session(session, user: User, response: Response) -> None:
+def create_login_session(
+    session, user: User, response: Response, remember_me: bool = False
+) -> None:
     token = secrets.token_urlsafe(32)
     now = datetime.now(timezone.utc)
+    duration = SESSION_DURATION if remember_me else SESSION_ONLY_DURATION
 
     session.add(
         LoginSession(
             user_id=user.id,
             token_hash=hash_session_token(token),
             created_at=now,
-            expires_at=now + SESSION_DURATION,
+            expires_at=now + duration,
         )
     )
 
-    response.set_cookie(
-        key=SESSION_COOKIE_NAME,
-        value=token,
-        max_age=int(SESSION_DURATION.total_seconds()),
-        httponly=True,
-        secure=os.getenv("COOKIE_SECURE", "false").lower() == "true",
-        samesite="lax",
-        path="/",
-    )
+    cookie_options = {
+        "key": SESSION_COOKIE_NAME,
+        "value": token,
+        "httponly": True,
+        "secure": os.getenv("COOKIE_SECURE", "false").lower() == "true",
+        "samesite": "lax",
+        "path": "/",
+    }
+    if remember_me:
+        cookie_options["max_age"] = int(duration.total_seconds())
+
+    response.set_cookie(**cookie_options)
 
 
 def ensure_assessment_access(session, assessment: Assessment, request: Request) -> None:
@@ -215,7 +224,7 @@ def login(payload: LoginRequest, request: Request, response: Response) -> dict:
         ):
             raise HTTPException(status_code=401, detail="Invalid email or password.")
 
-        create_login_session(session, user, response)
+        create_login_session(session, user, response, payload.remember_me)
         return {"id": user.id, "email": user.email}
 
 
@@ -308,6 +317,15 @@ def login_page() -> Response:
 @app.get("/signup")
 def signup_page() -> Response:
     html_path = Path(__file__).with_name("signup.html")
+    return Response(
+        content=html_path.read_text(encoding="utf-8"), media_type="text/html"
+    )
+
+
+@app.get("/workspace")
+def workspace_page() -> Response:
+    """Display the signed-in AgentGuard workspace."""
+    html_path = Path(__file__).with_name("workspace.html")
     return Response(
         content=html_path.read_text(encoding="utf-8"), media_type="text/html"
     )

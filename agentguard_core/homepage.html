@@ -112,8 +112,10 @@ footer {padding:25px;text-align:center;color:var(--muted);font-size:13px}
 <a href="#faq">FAQ</a>
 <a href="/methodology">Methodology</a>
 <a class="nav-extra" href="#support">Support</a>
-<a href="/login">Sign in</a>
-<a href="/signup">Create account</a>
+<a href="/login" id="signin-link">Sign in</a>
+<a href="/signup" id="signup-link">Create account</a>
+<a href="/workspace" id="workspace-link" hidden>Workspace</a>
+<span id="account-email" hidden></span>
 <a class="btn" href="/guided-assessment">Get Started</a>
 </div>
 </nav>
@@ -272,6 +274,21 @@ footer {padding:25px;text-align:center;color:var(--muted);font-size:13px}
 </footer>
 
 <script>
+(async function updateHomepageAccount() {
+  try {
+    const response = await fetch("/auth/me", { credentials: "same-origin" });
+    if (!response.ok) return;
+    const user = await response.json();
+    document.getElementById("signin-link").hidden = true;
+    document.getElementById("signup-link").hidden = true;
+    document.getElementById("workspace-link").hidden = false;
+    const email = document.getElementById("account-email");
+    email.textContent = user.email;
+    email.hidden = false;
+  } catch (error) {
+    console.error("Could not load account information", error);
+  }
+})();
 const matrix = document.getElementById("riskMatrix");
 const levels = ["Low","Moderate","High","Critical"];
 function getLevel(score) {
@@ -299,5 +316,21 @@ for (let severity = 5; severity >= 1; severity--) {
   }
 }
 </script>
+
+<script>
+(async function routeHomeForSignedInUsers() {
+  try {
+    const response = await fetch("/auth/me", { credentials: "same-origin" });
+    if (!response.ok) return;
+
+    document.querySelectorAll('a[href="/"]').forEach(link => {
+      link.href = "/workspace";
+    });
+  } catch (error) {
+    console.error("Could not determine account navigation.", error);
+  }
+})();
+</script>
+
 </body>
 </html>

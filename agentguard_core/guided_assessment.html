@@ -820,8 +820,9 @@ progress::-moz-progress-bar {
 <main>
 <a class="brand" href="/" aria-label="AgentGuard home">AGENT<span>GUARD</span></a>
 <nav aria-label="Main navigation" style="display:flex;gap:18px;margin:12px 0 22px;">
+  <a href="/workspace">Workspace</a>
   <a href="/dashboard">Results Dashboard</a>
-  <a href="/account">My Account</a>
+  <a href="/account">Assessment History</a>
 </nav>
 <header>
   <h1>AgentGuard Guided Assessment</h1>
@@ -853,7 +854,8 @@ progress::-moz-progress-bar {
   <label for="deployment">Deployment status (optional)
     <input id="deployment" type="text">
   </label>
-  <p class="setup-note">Only the agent name is required. All other information can be added later.</p>
+  <p class="setup-note">No account is required to get started. You can complete this assessment as a guest; guest assessments are available for 24 hours. Create an account afterward to keep your results.</p>
+  <p class="setup-note">Already have an account? <a href="/login">Sign in</a>.</p>
   <button id="startButton" type="button">Start assessment <span aria-hidden="true">→</span></button>
   <p id="setupError" class="error" role="alert"></p>
 </section>
@@ -1367,5 +1369,21 @@ document.getElementById("anotherButton").addEventListener("click", () => {
   document.getElementById("agentName").focus();
 });
 </script>
+
+<script>
+(async function routeHomeForSignedInUsers() {
+  try {
+    const response = await fetch("/auth/me", { credentials: "same-origin" });
+    if (!response.ok) return;
+
+    document.querySelectorAll('a[href="/"]').forEach(link => {
+      link.href = "/workspace";
+    });
+  } catch (error) {
+    console.error("Could not determine account navigation.", error);
+  }
+})();
+</script>
+
 </body>
 </html>

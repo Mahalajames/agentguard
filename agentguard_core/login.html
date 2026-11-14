@@ -63,6 +63,10 @@ form button { width: 100%; margin-top: 24px; }
       <input id="email" type="email" autocomplete="email" required>
       <label for="password">Password</label>
       <input id="password" type="password" autocomplete="current-password" required>
+      <label for="remember-me" style="display:flex;align-items:center;gap:9px;margin-top:18px;font-weight:500;">
+        <input id="remember-me" type="checkbox" style="width:auto;margin:0;">
+        Remember me for 30 days
+      </label>
       <button type="submit" id="submit-button">Sign in</button>
       <p class="message" id="message" role="alert"></p>
     </form>
@@ -95,7 +99,8 @@ form.addEventListener("submit", async (event) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         email: document.getElementById("email").value,
-        password: document.getElementById("password").value
+        password: document.getElementById("password").value,
+        remember_me: document.getElementById("remember-me").checked
       })
     });
     const data = await response.json().catch(() => ({}));
@@ -115,7 +120,7 @@ form.addEventListener("submit", async (event) => {
       }
       window.location.href = "/dashboard?token=" + encodeURIComponent(claimToken);
     } else {
-      window.location.href = "/account";
+      window.location.href = "/workspace";
     }
   } catch (error) {
     message.textContent = error.message;
@@ -124,5 +129,21 @@ form.addEventListener("submit", async (event) => {
   }
 });
 </script>
+
+<script>
+(async function routeHomeForSignedInUsers() {
+  try {
+    const response = await fetch("/auth/me", { credentials: "same-origin" });
+    if (!response.ok) return;
+
+    document.querySelectorAll('a[href="/"]').forEach(link => {
+      link.href = "/workspace";
+    });
+  } catch (error) {
+    console.error("Could not determine account navigation.", error);
+  }
+})();
+</script>
+
 </body>
 </html>

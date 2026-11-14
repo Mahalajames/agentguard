@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Workspace | AgentGuard</title>
+<style>
+:root {
+  color-scheme: light;
+  --navy: #14243b;
+  --navy-light: #1d3555;
+  --blue: #2563eb;
+  --blue-soft: #edf3ff;
+  --bg: #f4f7fc;
+  --white: #fff;
+  --text: #1d2939;
+  --muted: #66758a;
+  --border: #e3e9f2;
+  --green: #15803d;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+a { color: inherit; }
+.app { min-height: 100vh; display: grid; grid-template-columns: 250px minmax(0, 1fr); }
+.sidebar {
+  background: var(--navy);
+  color: #d9e4f3;
+  min-height: 100vh;
+  padding: 30px 18px;
+  display: flex;
+  flex-direction: column;
+}
+.brand {
+  color: white;
+  text-decoration: none;
+  font-size: 20px;
+  font-weight: 850;
+  letter-spacing: 1.3px;
+  padding: 0 12px;
+}
+.brand span { color: #76a7ff; }
+.tagline {
+  color: #91a4bd;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  line-height: 1.7;
+  margin: 9px 12px 42px;
+}
+.nav-label {
+  color: #8195af;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 1.4px;
+  padding: 0 12px;
+  margin: 0 0 12px;
+}
+nav { display: grid; gap: 6px; }
+nav a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #c6d3e3;
+  text-decoration: none;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background .15s, color .15s;
+}
+nav a:hover { background: #203653; color: white; }
+nav a.active { background: #263f62; color: white; }
+.nav-icon {
+  width: 20px;
+  text-align: center;
+  color: #91b7ff;
+  font-size: 15px;
+}
+.sidebar-bottom {
+  margin-top: auto;
+  padding: 18px 12px 0;
+  color: #91a4bd;
+  font-size: 11px;
+  line-height: 1.7;
+  border-top: 1px solid #2b405c;
+}
+.main-area { min-width: 0; }
+.topbar {
+  height: 76px;
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  padding: 0 42px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.breadcrumb { color: var(--muted); font-size: 13px; }
+.account-area { display: flex; align-items: center; gap: 13px; }
+.account-email { color: #46566c; font-size: 13px; font-weight: 600; }
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--blue-soft);
+  color: var(--blue);
+  font-size: 13px;
+  font-weight: 800;
+}
+.logout {
+  border: 1px solid var(--border);
+  background: white;
+  color: #46566c;
+  padding: 8px 12px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 650;
+}
+.logout:hover { background: #f5f7fb; }
+main { width: min(100% - 84px, 1180px); margin: 38px auto 60px; }
+.eyebrow {
+  color: var(--blue);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+h1 { margin: 10px 0 9px; font-size: clamp(27px, 3vw, 35px); letter-spacing: -.8px; }
+.intro { color: var(--muted); margin: 0; line-height: 1.65; font-size: 14px; }
+.section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  margin: 34px 0 16px;
+}
+.section-title h2 { font-size: 17px; margin: 0; }
+.section-title a { color: var(--blue); font-size: 12px; font-weight: 700; text-decoration: none; }
+.section-title a:hover { text-decoration: underline; }
+.quick-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 17px; }
+.action-card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 22px;
+  min-height: 180px;
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(20,36,59,.025);
+  transition: transform .15s, box-shadow .15s, border-color .15s;
+}
+.action-card:hover {
+  transform: translateY(-2px);
+  border-color: #b7cdfa;
+  box-shadow: 0 8px 22px rgba(20,36,59,.07);
+}
+.action-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: var(--blue-soft);
+  color: var(--blue);
+  font-size: 19px;
+  margin-bottom: 17px;
+}
+.action-card h3 { margin: 0 0 8px; font-size: 15px; }
+.action-card p { color: var(--muted); font-size: 12px; line-height: 1.6; margin: 0; }
+.action-link { display: inline-block; color: var(--blue); font-size: 12px; font-weight: 750; margin-top: 15px; }
+.overview-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 17px; }
+.stat-card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  padding: 19px 21px;
+}
+.stat-label { color: var(--muted); font-size: 12px; font-weight: 600; }
+.stat-value { font-size: 27px; font-weight: 800; margin-top: 9px; letter-spacing: -.5px; }
+.stat-note { color: #8a97a8; font-size: 11px; margin-top: 4px; }
+.recent-panel {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  overflow: hidden;
+}
+.assessment-row {
+  padding: 17px 21px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  border-bottom: 1px solid var(--border);
+}
+.assessment-row:last-child { border-bottom: 0; }
+.assessment-name { font-size: 13px; font-weight: 700; margin-bottom: 5px; }
+.assessment-meta { color: var(--muted); font-size: 11px; }
+.assessment-actions { display: flex; align-items: center; gap: 14px; }
+.assessment-actions a {
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.assessment-actions a:hover { text-decoration: underline; }
+.empty, .loading, .error {
+  padding: 25px 21px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.error { color: #b42318; }
+footer {
+  color: #8995a5;
+  font-size: 11px;
+  line-height: 1.7;
+  margin-top: 30px;
+}
+@media (max-width: 900px) {
+  .app { grid-template-columns: 210px minmax(0, 1fr); }
+  .topbar { padding: 0 24px; }
+  main { width: min(100% - 48px, 1180px); }
+  .quick-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 650px) {
+  .app { display: block; }
+  .sidebar { min-height: 0; padding: 17px; }
+  .tagline, .nav-label, .sidebar-bottom { display: none; }
+  nav { display: flex; overflow-x: auto; margin-top: 16px; }
+  nav a { white-space: nowrap; padding: 9px 10px; font-size: 11px; }
+  .nav-icon { display: none; }
+  .topbar { height: 62px; padding: 0 17px; }
+  .account-email { max-width: 145px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  main { width: calc(100% - 34px); margin: 27px auto 40px; }
+  .quick-grid, .overview-grid { grid-template-columns: 1fr; }
+  .action-card { min-height: 0; }
+  .assessment-row { align-items: flex-start; flex-direction: column; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <a class="brand" href="/workspace">AGENT<span>GUARD</span></a>
+    <div class="tagline">SAFER AGENTS. STRONGER<br>GOVERNANCE.</div>
+    <div class="nav-label">WORKSPACE</div>
+    <nav aria-label="Workspace navigation">
+      <a class="active" href="/workspace" aria-current="page"><span class="nav-icon">⌂</span>Overview</a>
+      <a href="/dashboard"><span class="nav-icon">▦</span>Dashboard</a>
+      <a href="/guided-assessment"><span class="nav-icon">◎</span>Guided Assessment</a>
+      <a href="/upload"><span class="nav-icon">⇧</span>Upload Inventory</a>
+      <a href="/account"><span class="nav-icon">◷</span>Assessment History</a>
+    </nav>
+    <div class="sidebar-bottom">AGENTGUARD<br>AI GOVERNANCE &amp; RISK<br><br>Assessment workspace</div>
+  </aside>
+
+  <div class="main-area">
+    <header class="topbar">
+      <div class="breadcrumb">Workspace / Overview</div>
+      <div class="account-area">
+        <div class="avatar" id="avatar">AG</div>
+        <span class="account-email" id="account-email">Loading account...</span>
+        <button class="logout" id="logout-button" type="button">Sign out</button>
+      </div>
+    </header>
+
+    <main>
+      <div class="eyebrow">Your workspace</div>
+      <h1 id="welcome-heading">Welcome to AgentGuard</h1>
+      <p class="intro">Manage your AI agent assessments, review risk results, and keep your governance work organized in one place.</p>
+
+      <div class="section-title"><h2>Get started</h2></div>
+      <section class="quick-grid" aria-label="Workspace actions">
+        <a class="action-card" href="/guided-assessment">
+          <div class="action-icon">◎</div>
+          <h3>Start a guided assessment</h3>
+          <p>Evaluate an individual AI agent through a structured, step-by-step assessment.</p>
+          <span class="action-link">Start assessment →</span>
+        </a>
+        <a class="action-card" href="/upload">
+          <div class="action-icon">⇧</div>
+          <h3>Upload agent inventory</h3>
+          <p>Import multiple agents using the inventory template and review your portfolio.</p>
+          <span class="action-link">Upload inventory →</span>
+        </a>
+        <a class="action-card" href="/account">
+          <div class="action-icon">◷</div>
+          <h3>Assessment history</h3>
+          <p>Return to saved assessments and access your downloadable reports.</p>
+          <span class="action-link">View history →</span>
+        </a>
+      </section>
+
+      <div class="section-title"><h2>Account overview</h2></div>
+      <section class="overview-grid" aria-label="Account overview">
+        <div class="stat-card">
+          <div class="stat-label">Saved assessments</div>
+          <div class="stat-value" id="assessment-count">—</div>
+          <div class="stat-note">Assessments linked to your account</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Latest assessment</div>
+          <div class="stat-value" id="latest-date" style="font-size:19px">—</div>
+          <div class="stat-note">Most recently saved</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Account status</div>
+          <div class="stat-value" style="font-size:19px;color:var(--green)">Active</div>
+          <div class="stat-note">Your account is signed in</div>
+        </div>
+      </section>
+
+      <div class="section-title">
+        <h2>Recent assessments</h2>
+        <a href="/account">View all assessments →</a>
+      </div>
+      <section class="recent-panel" id="recent-assessments" aria-live="polite">
+        <div class="loading">Loading your saved assessments...</div>
+      </section>
+
+      <footer>
+        AgentGuard provides decision support for responsible AI deployment. Results depend on the information provided and do not guarantee safety, compliance, or readiness. AgentGuard is not legal advice or a certification and does not replace qualified human review.
+      </footer>
+    </main>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+const emailEl = document.getElementById("account-email");
+const avatarEl = document.getElementById("avatar");
+const recentEl = document.getElementById("recent-assessments");
+
+function makeAssessmentRow(item) {
+  const row = document.createElement("article");
+  row.className = "assessment-row";
+
+  const details = document.createElement("div");
+  const name = document.createElement("div");
+  name.className = "assessment-name";
+  name.textContent = "Agent assessment";
+
+  const meta = document.createElement("div");
+  meta.className = "assessment-meta";
+  const date = item.created_at
+    ? new Date(item.created_at).toLocaleString()
+    : "Date unavailable";
+  meta.textContent = date + " · " + (item.status || "Saved");
+  details.append(name, meta);
+
+  const actions = document.createElement("div");
+  actions.className = "assessment-actions";
+
+  const token = encodeURIComponent(item.token);
+  const results = document.createElement("a");
+  results.href = "/dashboard?token=" + token;
+  results.textContent = "View results";
+
+  const report = document.createElement("a");
+  report.href = "/assessments/" + token + "/report.pdf";
+  report.textContent = "Download PDF";
+
+  actions.append(results, report);
+  row.append(details, actions);
+  return row;
+}
+
+async function loadWorkspace() {
+  try {
+    const [meResponse, assessmentsResponse] = await Promise.all([
+      fetch("/auth/me", { credentials: "same-origin" }),
+      fetch("/account/assessments", { credentials: "same-origin" })
+    ]);
+
+    if (meResponse.status === 401 || assessmentsResponse.status === 401) {
+      window.location.href = "/login";
+      return;
+    }
+
+    if (!meResponse.ok || !assessmentsResponse.ok) {
+      throw new Error("We couldn't load your workspace. Please refresh the page.");
+    }
+
+    const me = await meResponse.json();
+    const data = await assessmentsResponse.json();
+    const email = me.email || "Your account";
+
+    emailEl.textContent = email;
+    avatarEl.textContent = email.slice(0, 1).toUpperCase();
+    const firstName = email.split("@")[0].split(/[._-]/)[0];
+    document.getElementById("welcome-heading").textContent =
+      "Welcome back, " + firstName.charAt(0).toUpperCase() + firstName.slice(1);
+
+    const assessments = data.assessments || [];
+    document.getElementById("assessment-count").textContent = assessments.length;
+
+    if (assessments.length) {
+      const latest = new Date(assessments[0].created_at);
+      document.getElementById("latest-date").textContent =
+        Number.isNaN(latest.getTime())
+          ? "Available"
+          : latest.toLocaleDateString(undefined, {
+              month: "short",
+              day: "numeric",
+              year: "numeric"
+            });
+
+      recentEl.replaceChildren(
+        ...assessments.slice(0, 4).map(makeAssessmentRow)
+      );
+    } else {
+      document.getElementById("latest-date").textContent = "None yet";
+      const empty = document.createElement("div");
+      empty.className = "empty";
+      empty.textContent =
+        "You haven't saved an assessment yet. Start a guided assessment or upload an inventory to begin building your portfolio.";
+      recentEl.replaceChildren(empty);
+    }
+  } catch (error) {
+    recentEl.replaceChildren();
+    const message = document.createElement("div");
+    message.className = "error";
+    message.textContent = error.message || "Unable to load your workspace.";
+    recentEl.appendChild(message);
+  }
+}
+
+document.getElementById("logout-button").addEventListener("click", async () => {
+  const button = document.getElementById("logout-button");
+  button.disabled = true;
+  button.textContent = "Signing out...";
+  try {
+    await fetch("/auth/logout", {
+      method: "POST",
+      credentials: "same-origin"
+    });
+  } finally {
+    window.location.href = "/";
+  }
+});
+
+loadWorkspace();
+</script>
+</body>
+</html>

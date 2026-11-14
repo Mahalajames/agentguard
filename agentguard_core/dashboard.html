@@ -497,6 +497,7 @@
     <header class="topbar">
       <a class="brand" href="/" aria-label="AgentGuard home" style="color:var(--text);text-decoration:none">AGENT<span>GUARD</span></a>
       <nav class="nav" aria-label="Main navigation">
+        <a href="/workspace">Workspace</a>
         <a href="/guided-assessment">Guided assessment</a>
         <a href="/upload">Upload inventory</a>
         <a href="/methodology">Methodology</a>
@@ -1000,5 +1001,21 @@
       loadAssessment(initialToken);
     }
   </script>
+
+<script>
+(async function routeHomeForSignedInUsers() {
+  try {
+    const response = await fetch("/auth/me", { credentials: "same-origin" });
+    if (!response.ok) return;
+
+    document.querySelectorAll('a[href="/"]').forEach(link => {
+      link.href = "/workspace";
+    });
+  } catch (error) {
+    console.error("Could not determine account navigation.", error);
+  }
+})();
+</script>
+
 </body>
 </html>

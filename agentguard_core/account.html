@@ -82,13 +82,13 @@ form button { width: 100%; margin-top: 24px; }
 <body>
 <header class="topbar">
   <a class="brand" href="/">AGENT<span>GUARD</span></a>
-  <div><a href="/">Home</a></div>
+  <div><a href="/workspace">Workspace</a> &nbsp; <a href="/">Home</a></div>
 </header>
 <main>
   <section class="card">
     <div class="account-head">
       <div>
-        <h1>My account</h1>
+        <h1>Assessment History</h1>
         <p class="subtitle" id="account-email">Loading your account...</p>
       </div>
       <button class="logout" id="logout-button" type="button">Sign out</button>
@@ -185,5 +185,21 @@ document.getElementById("logout-button").addEventListener("click", async () => {
 
 loadAccount();
 </script>
+
+<script>
+(async function routeHomeForSignedInUsers() {
+  try {
+    const response = await fetch("/auth/me", { credentials: "same-origin" });
+    if (!response.ok) return;
+
+    document.querySelectorAll('a[href="/"]').forEach(link => {
+      link.href = "/workspace";
+    });
+  } catch (error) {
+    console.error("Could not determine account navigation.", error);
+  }
+})();
+</script>
+
 </body>
 </html>
