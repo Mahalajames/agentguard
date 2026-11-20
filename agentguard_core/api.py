@@ -48,6 +48,8 @@ from agentguard_core.scoring import (
     score_agent,
 )
 
+logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -593,6 +595,7 @@ async def upload_assessment(request: Request, file: UploadFile = File(...)) -> d
                         )
                     )
     except Exception as error:
+        logger.exception("Failed to save uploaded assessment")
         raise HTTPException(
             status_code=500,
             detail="The assessment could not be saved.",
